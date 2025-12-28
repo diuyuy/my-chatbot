@@ -1,5 +1,6 @@
-import { createPaginationSchema } from "@/server/common/utils/create-schema";
+import { createPaginationSchema } from "@/server/common/utils/schema-utils";
 import { z } from "@hono/zod-openapi";
+import { UserMessageSchema } from "./message.schema";
 
 export const ConversationSchema = z.object({
   id: z.string(),
@@ -10,3 +11,7 @@ export const ConversationSchema = z.object({
 
 export const PaginationConversationSchema =
   createPaginationSchema(ConversationSchema);
+
+export const UpdateUserMessageSchema = z.object({
+  messages: z.array(UserMessageSchema),
+});

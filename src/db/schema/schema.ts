@@ -2,7 +2,6 @@ import {
   index,
   integer,
   jsonb,
-  pgEnum,
   pgTable,
   text,
   timestamp,
@@ -11,15 +10,7 @@ import {
   vector,
 } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema";
-
-// Enums
-export const messageRoleEnum = pgEnum("message_role", [
-  "user",
-  "assistant",
-  "system",
-  "tool",
-]);
-export const fileTypeEnum = pgEnum("file_type", ["image", "audio", "pdf"]);
+import { fileTypeEnum, messageRoleEnum } from "./enums";
 
 // Tables
 export const conversations = pgTable(
@@ -33,6 +24,7 @@ export const conversations = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at")
       .notNull()
+      .defaultNow()
       .$onUpdate(() => new Date()),
   },
   (table) => [

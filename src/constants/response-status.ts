@@ -5,11 +5,25 @@ export const RESPONSE_STATUS = {
     message: "요청이 성공적으로 처리되었습니다.",
   },
 
+  // 400
+  INVALID_REQUEST_FORMAT: {
+    status: 400,
+    code: "INVALID_REQUEST_FORMAT",
+    message: "유효하지 않은 요청 형식입니다.",
+  },
+
   // 401
   INVALID_SESSION: {
     status: 401,
     code: "INVALID_SESSION",
     message: "유효하지 않은 세션입니다.",
+  },
+
+  // 403
+  ACCESS_CONVERSATION_DENIED: {
+    status: 403,
+    code: "ACCESS_CONVERSATION_DENIED",
+    message: "해당 대화에 접근할 권한이 없습니다.",
   },
 
   // 404
@@ -19,6 +33,13 @@ export const RESPONSE_STATUS = {
     message: "해당 자원이 존재하지 않습니다.",
   },
 
+  CONVERSATION_NOT_FOUND: {
+    status: 404,
+    code: "CONVERSATION_NOT_FOUND",
+    message: "해당 대화가 존재하지 않습니다.",
+  },
+
+  // 500
   INTERNAL_SERVER_ERROR: {
     status: 500,
     code: "INTERNAL_SERVER_ERROR",
