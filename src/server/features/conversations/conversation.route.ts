@@ -7,20 +7,22 @@ import {
 import { PaginationConversationSchema } from "@/schemas/conversation.schema";
 import { zValidator } from "@hono/zod-validator";
 
-import { UserMessageSchema } from "@/schemas/message.schema";
+import { MessageSchema, UserMessageSchema } from "@/schemas/message.schema";
 import { sessionMiddleware } from "@/server/common/middlewares/session.middleware";
 import { Env } from "@/server/common/types/types";
 import { createSuccessResponse } from "@/server/common/utils/response-utils";
 import { zodValidationHook } from "@/server/common/utils/zod-validation-hook";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
+import { UIMessage } from "ai";
 import {
-  createConversation,
   findAllConversations,
   removeConversation,
+  updateConversation,
 } from "./conversation.service";
 
 const conversationRoute = new OpenAPIHono<Env>();
 
+// Register session middleware
 conversationRoute.use(sessionMiddleware);
 
 const findAllRoute = createRoute({
@@ -73,6 +75,10 @@ conversationRoute.openAPIRegistry.registerPath({
       content: {
         "application/json": {
           schema: UserMessageSchema,
+          example: {
+            UIMessage: "UIMessage Type from ai sdk",
+            modelProvider: "gemini",
+          },
         },
       },
     },
@@ -99,22 +105,35 @@ conversationRoute.openAPIRegistry.registerPath({
 
 conversationRoute.post(
   "/",
-  zValidator("json", UserMessageSchema, zodValidationHook),
+  // zValidator("json", UserMessageSchema, zodValidationHook),
   async (c) => {
-    const createConversationDto = c.req.valid("json");
+    // const createConversationDto = c.req.valid("json");
     const user = c.get("user");
+    const {
+      messages,
+      modelProvider,
+    }: { messages: UIMessage[]; modelProvider: string } = await c.req.json();
+    console.log("🚀 ~ modelProvider:", modelProvider);
+    console.log("🚀 ~ messages:", JSON.stringify(messages, null, 2));
 
-    return createConversation(user.id, createConversationDto);
+    return c.json(
+      {
+        success: true,
+      },
+      200
+    );
   }
 );
+
+const ParamsSchema = z.object({
+  conversationId: z.uuid(),
+});
 
 conversationRoute.openAPIRegistry.registerPath({
   path: "/:conversationId",
   method: "post",
   request: {
-    params: z.object({
-      conversationId: z.uuid(),
-    }),
+    params: ParamsSchema,
   },
   responses: {
     200: {
@@ -123,10 +142,23 @@ conversationRoute.openAPIRegistry.registerPath({
           schema: z.string(),
         },
       },
-      description: "",
+      description: "성공 응답 (Text stream)",
     },
   },
 });
+
+conversationRoute.post(
+  "/:conversationId",
+  zValidator("param", ParamsSchema, zodValidationHook),
+  zValidator("json", z.array(MessageSchema), zodValidationHook),
+  async (c) => {
+    const { conversationId } = c.req.valid("param");
+    const messages = c.req.valid("json");
+    const user = c.get("user");
+
+    return await updateConversation(user.id, conversationId, messages);
+  }
+);
 
 const deleteConversationRoute = createRoute({
   method: "delete",

@@ -1,7 +1,10 @@
 import { RESPONSE_STATUS } from "@/constants/response-status";
 import { db } from "@/db/db";
 import { conversations } from "@/db/schema/schema";
-import { CreateMessageDto } from "@/schemas/message.schema";
+import {
+  CreateMessageDto,
+  UpdateConversationDto,
+} from "@/schemas/message.schema";
 import { CommonHttpException } from "@/server/common/errors/common-http-exception";
 import { createCursor } from "@/server/common/utils/create-cursor";
 import { createPaginationResponse } from "@/server/common/utils/response-utils";
@@ -21,19 +24,39 @@ export const createConversation = async (
 
   await createMessage(newConversation.id, createConversationDto);
 
-  return generateStreamText([
+  const result = await generateStreamText([
     {
       content: createConversationDto.content,
       role: createConversationDto.role,
     },
   ]);
+
+  return result.toUIMessageStreamResponse({
+    headers: {
+      "Conversation-Id": newConversation.id,
+    },
+  });
 };
 
 export const updateConversation = async (
   userId: string,
-  conversationId: string
+  conversationId: string,
+  messages: UpdateConversationDto
 ) => {
   await validateAccessability(userId, conversationId);
+
+  const lastMessage = messages.at(-1);
+  if (!lastMessage) {
+    throw new CommonHttpException(RESPONSE_STATUS.INVALID_REQUEST_FORMAT);
+  }
+
+  await createMessage(conversationId, lastMessage);
+
+  const result = await generateStreamText(
+    messages.map(({ content, role }) => ({ content, role }))
+  );
+
+  return result.toUIMessageStreamResponse();
 };
 
 export const findAllConversations = async (

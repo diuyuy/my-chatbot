@@ -1,6 +1,7 @@
+import { createPaginationSchema } from "@/server/common/utils/schema-utils";
 import { z } from "@hono/zod-openapi";
+import { AssistantModelMessage, ModelMessage, UserModelMessage } from "ai";
 import { ContentfulStatusCode } from "hono/utils/http-status";
-import { createPaginationSchema } from "../server/common/utils/create-schema";
 
 export type PaginationInfo = Omit<
   z.infer<ReturnType<typeof createPaginationSchema>>,
@@ -17,3 +18,8 @@ export type ResponseStatus = {
   code: string;
   message: string;
 };
+
+export type ClientMessage = Extract<
+  ModelMessage,
+  UserModelMessage | AssistantModelMessage
+>;
