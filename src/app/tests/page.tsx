@@ -13,6 +13,7 @@ export default function TestPage() {
     transport: new DefaultChatTransport({
       api: "/api/conversations",
     }),
+    onFinish: ({ message }) => {},
   });
 
   // 새 메시지가 추가되면 자동으로 스크롤

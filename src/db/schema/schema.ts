@@ -1,3 +1,4 @@
+import { MyUIMessage } from "@/server/features/ai/ai.schemas";
 import {
   index,
   integer,
@@ -55,9 +56,9 @@ export const messages = pgTable(
       .notNull()
       .references(() => conversations.id, { onDelete: "cascade" }),
     role: messageRoleEnum("role").notNull(),
-    content: text("content"),
+    metadata: jsonb("metadata").$type<MyUIMessage["metadata"]>().notNull(),
+    parts: jsonb("parts").$type<MyUIMessage["parts"]>().notNull(),
     modelProvider: text("model_provider"),
-    tokenUsed: integer("token_used"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [index("idx_messages_created_at").on(table.createdAt)]
@@ -86,14 +87,20 @@ export const toolInvocations = pgTable("tool_invocations", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const documentChunks = pgTable("document_chunks", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  content: text("content").notNull(),
-  tag: text("tag"), // 문서 필터링 용 태그
-  embedding: vector("embedding", { dimensions: 1536 }),
-  metadata: jsonb("metadata"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+export const documentChunks = pgTable(
+  "document_chunks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    content: text("content").notNull(),
+    tag: text("tag"), // 문서 필터링 용 태그
+    embedding: vector("embedding", { dimensions: 1536 }),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("ip_index").using("hnsw", table.embedding.op("vector_ip_ops")),
+  ]
+);
