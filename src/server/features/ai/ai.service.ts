@@ -1,7 +1,11 @@
-import { ClientMessage } from "@/types/types";
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
-import { createIdGenerator, embedMany, streamText } from "ai";
+import {
+  convertToModelMessages,
+  createIdGenerator,
+  embedMany,
+  streamText,
+} from "ai";
 import { MyUIMessage } from "./ai.schemas";
 
 export const getModel = (modelProvider: string) => {
@@ -9,11 +13,29 @@ export const getModel = (modelProvider: string) => {
   return google("gemini-2.5-flash");
 };
 
-export const generateStreamText = async (messages: ClientMessage[]) => {
+export const generateUIMessageStreamResponse = async ({
+  conversationId,
+  messages,
+  modelProvider,
+  onFinish,
+}: {
+  conversationId: string;
+  messages: MyUIMessage[];
+  modelProvider: string;
+  onFinish: (response: { messages: MyUIMessage[] }) => void;
+}) => {
   return streamText({
     model: google("gemini-2.5-flash"),
     // prompt: "LLM에 대해서 500자 글자로 설명해줘.",
-    messages: messages,
+    messages: await convertToModelMessages(messages),
+  }).toUIMessageStreamResponse({
+    originalMessages: messages,
+    generateMessageId: myIdGenerator,
+    messageMetadata: () => ({
+      modelProvider,
+      conversationId,
+    }),
+    onFinish,
   });
 };
 
