@@ -187,7 +187,7 @@ export const findAllConversations = async (
     .orderBy(conversations.updatedAt)
     .limit(limit + 1);
 
-  const nextValue = result.length > limit ? result.at(-1)?.updatedAt : null;
+  const nextValue = result.length > limit ? result.pop()?.updatedAt : null;
   const nextCursor = nextValue ? createCursor(nextValue.toISOString()) : null;
 
   const [{ count: totalElements }] = await db
