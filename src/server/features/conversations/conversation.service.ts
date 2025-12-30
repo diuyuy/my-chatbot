@@ -5,58 +5,111 @@ import { CommonHttpException } from "@/server/common/errors/common-http-exceptio
 import { createCursor } from "@/server/common/utils/create-cursor";
 import { createPaginationResponse } from "@/server/common/utils/response-utils";
 import { PaginationOption } from "@/types/types";
-import {
-  convertToModelMessages,
-  streamText,
-  TypeValidationError,
-  validateUIMessages,
-} from "ai";
+import { TypeValidationError, validateUIMessages } from "ai";
 import { and, count, eq, gte, isNull } from "drizzle-orm/sql";
-import { MyUIMessage } from "../ai/ai.schemas";
-import { generateTitle, getModel, myIdGenerator } from "../ai/ai.service";
-import { insertMessages } from "../messages/message.service";
+import { metadataSchema, MyUIMessage } from "../ai/ai.schemas";
+import {
+  generateTitle,
+  generateUIMessageStreamResponse,
+  myIdGenerator,
+} from "../ai/ai.service";
+import {
+  insertMessages,
+  loadPreviousMessages,
+} from "../messages/message.service";
 
-export const handleConversation = async (
+export const handleSentMessage = async (
   userId: string,
   message: MyUIMessage,
   modelProvider: string,
   conversationId?: string
 ) => {
+  const serverSideUserId = myIdGenerator();
+  const userMessageWithServerId = { ...message, id: serverSideUserId };
+
+  // conversationId가 없을 경우 새로운 conversation 생성
   if (!conversationId) {
-    return generateNewConversation(userId, message, modelProvider);
+    return generateNewConversationAndAIResponse(
+      userId,
+      userMessageWithServerId,
+      modelProvider
+    );
   }
+
+  return generateAIResponse(conversationId, message, modelProvider);
 };
 
-const generateNewConversation = async (
+const generateNewConversationAndAIResponse = async (
   userId: string,
   message: MyUIMessage,
   modelProvider: string
 ) => {
   try {
-    const serverSideUserId = myIdGenerator();
-    const userMessageWithServerId = { ...message, id: serverSideUserId };
     const validatedMessages = await validateUIMessages<MyUIMessage>({
-      messages: [userMessageWithServerId],
+      messages: [message],
     });
 
     const newConversationId = await createConversation(userId);
 
-    return streamText({
-      model: getModel(modelProvider),
-      messages: await convertToModelMessages(validatedMessages),
-    }).toUIMessageStreamResponse({
-      originalMessages: [message],
-      generateMessageId: myIdGenerator,
-      messageMetadata: () => ({
-        modelProvider,
-        conversationId: newConversationId,
-      }),
+    return generateUIMessageStreamResponse({
+      conversationId: newConversationId,
+      messages: validatedMessages,
+      modelProvider,
       onFinish: async ({ messages }) => {
-        const title = await generateTitle(messages);
+        const title = generateTitle(message);
         await Promise.all([
           updateConversationTitle(newConversationId, title),
           insertMessages(newConversationId, messages),
         ]);
+      },
+    });
+
+    // return streamText({
+    //   model: getModel(modelProvider),
+    //   messages: await convertToModelMessages(validatedMessages),
+    // }).toUIMessageStreamResponse({
+    //   originalMessages: [message],
+    //   generateMessageId: myIdGenerator,
+    //   messageMetadata: () => ({
+    //     modelProvider,
+    //     conversationId: newConversationId,
+    //   }),
+    //   onFinish: async ({ messages }) => {
+    // const title = generateTitle(message);
+    // await Promise.all([
+    //   updateConversationTitle(newConversationId, title),
+    //   insertMessages(newConversationId, messages),
+    // ]);
+    //   },
+    // });
+  } catch (error) {
+    if (error instanceof TypeValidationError) {
+      throw new CommonHttpException(RESPONSE_STATUS.INVALID_REQUEST_FORMAT);
+    } else {
+      console.error(error);
+      throw new CommonHttpException(RESPONSE_STATUS.INTERNAL_SERVER_ERROR);
+    }
+  }
+};
+
+const generateAIResponse = async (
+  conversationId: string,
+  message: MyUIMessage,
+  modelProvider: string
+) => {
+  try {
+    const previousMessages = await loadPreviousMessages(conversationId);
+    const validatedMessages = await validateUIMessages<MyUIMessage>({
+      messages: [...previousMessages, message],
+      metadataSchema,
+    });
+
+    return generateUIMessageStreamResponse({
+      conversationId,
+      messages: validatedMessages,
+      modelProvider,
+      onFinish: async ({ messages }) => {
+        await insertMessages(conversationId, messages);
       },
     });
   } catch (error) {
