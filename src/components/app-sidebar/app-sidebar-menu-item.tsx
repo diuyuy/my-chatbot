@@ -39,17 +39,22 @@ export default function AppSidebarMenuItem({
       if (isFavorite) {
         await removeConversationFromFavorites(conversationId);
         toast.success("즐겨찾기에서 제거되었습니다.", {
-          duration: 1000,
+          duration: 1500,
         });
       } else {
         await addConversationToFavorites(conversationId);
         toast.success("즐겨찾기에 추가되었습니다.", {
-          duration: 1000,
+          duration: 1500,
         });
       }
       router.refresh();
     } catch (error) {
-      toast.error("즐겨찾기 처리에 실패했습니다.");
+      toast.error("즐겨찾기 처리에 실패했습니다.", {
+        action: {
+          label: "확인",
+          onClick: () => {},
+        },
+      });
       console.error("Failed to toggle favorite:", error);
     }
   };

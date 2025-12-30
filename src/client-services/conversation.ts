@@ -1,7 +1,29 @@
+import { UpdateConversationTitleDto } from "@/schemas/conversation.schema";
 import { ApiResponse } from "@/types/types";
 
-interface DeleteConversationData {
+type DeleteConversationData = {
   conversationId: string;
+};
+
+export async function updateConversationTitle(
+  conversationId: string,
+  updateConversationTitleDto: UpdateConversationTitleDto
+): Promise<ApiResponse> {
+  const response = await fetch(`/api/conversations/${conversationId}`, {
+    method: "PATCH",
+    body: JSON.stringify(updateConversationTitleDto),
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message);
+  }
+
+  return response.json();
 }
 
 /**
@@ -19,6 +41,11 @@ export async function deleteConversation(
       "Content-Type": "application/json",
     },
   });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message);
+  }
 
   return response.json();
 }
@@ -42,6 +69,11 @@ export async function addConversationToFavorites(
     }
   );
 
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message);
+  }
+
   return response.json();
 }
 
@@ -63,6 +95,11 @@ export async function removeConversationFromFavorites(
       },
     }
   );
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message);
+  }
 
   return response.json();
 }

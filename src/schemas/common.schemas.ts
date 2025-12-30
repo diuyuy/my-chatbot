@@ -16,9 +16,3 @@ export const ErrorResponseSchema = z.object({
 });
 
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;
-
-export const ValidationErrorSchema = z.object({
-  success: z.boolean().openapi({ example: false }),
-  code: z.string().openapi({ example: "REQUEST_VALIDATION_ERROR" }),
-  message: z.string().openapi({ example: "유효하지 않은 요청 형식입니다." }),
-});
