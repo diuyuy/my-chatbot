@@ -8,13 +8,14 @@ import {
 
 import { CACHE_TAG } from "@/constants/cache-tag";
 import { SUCCESS_RESPONSE } from "@/constants/success-response";
-import { MessageSchema } from "@/schemas/message.schema";
+import { SendMessageSchema } from "@/schemas/message.schema";
 import { sessionMiddleware } from "@/server/common/middlewares/session.middleware";
 import { Env } from "@/server/common/types/types";
 import {
   createErrorResponseSignature,
   createSuccessResponse,
 } from "@/server/common/utils/response-utils";
+import { createPaginationSchema } from "@/server/common/utils/schema-utils";
 import { zodValidationHook } from "@/server/common/utils/zod-validation-hook";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { zValidator } from "@hono/zod-validator";
@@ -25,6 +26,7 @@ import {
   deleteFavoriteConversation,
   findAllConversations,
   findFavorites,
+  getMessagesInConversation,
   handleSentMessage,
   removeConversation,
   updateConversationTitle,
@@ -81,7 +83,7 @@ conversationRoute.openAPIRegistry.registerPath({
     body: {
       content: {
         "application/json": {
-          schema: MessageSchema,
+          schema: SendMessageSchema,
           example: {
             UIMessage: "UIMessage Type from ai sdk",
             modelProvider: "gemini",
@@ -105,7 +107,7 @@ conversationRoute.openAPIRegistry.registerPath({
 
 conversationRoute.post(
   "/",
-  zValidator("json", MessageSchema, zodValidationHook),
+  zValidator("json", SendMessageSchema, zodValidationHook),
   async (c) => {
     const { message, modelProvider, conversationId } = c.req.valid("json");
     console.log("🚀 ~ modelProvider:", modelProvider);
@@ -300,5 +302,60 @@ conversationRoute.openapi(deleteFavoriteRoute, async (c) => {
 
   return c.json(SUCCESS_RESPONSE, 200);
 });
+
+// Get Messages
+const ParamSchema = z.object({
+  conversationId: z.uuid(),
+});
+
+const QuerySchema = z.object({
+  cursor: z.string().optional(),
+  limit: z.coerce.number().min(1),
+});
+
+conversationRoute.openAPIRegistry.registerPath({
+  method: "get",
+  path: "/:conversationId/messages",
+  request: {
+    params: ParamSchema,
+    query: QuerySchema,
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: SuccessReponseSchema.extend({
+            data: createPaginationSchema(SendMessageSchema),
+          }),
+        },
+      },
+      description: "성공 요청 응답",
+    },
+    400: createErrorResponseSignature(RESPONSE_STATUS.INVALID_REQUEST_FORMAT),
+    403: createErrorResponseSignature(
+      RESPONSE_STATUS.ACCESS_CONVERSATION_DENIED
+    ),
+    404: createErrorResponseSignature(RESPONSE_STATUS.CONVERSATION_NOT_FOUND),
+    500: createErrorResponseSignature(RESPONSE_STATUS.INTERNAL_SERVER_ERROR),
+  },
+});
+
+conversationRoute.get(
+  "/:conversationId/messages",
+  zValidator("param", ParamSchema),
+  zValidator("query", QuerySchema),
+  async (c) => {
+    const { conversationId } = c.req.valid("param");
+    const { cursor, limit } = c.req.valid("query");
+    const user = c.get("user");
+
+    const messages = await getMessagesInConversation(user.id, conversationId, {
+      cursor,
+      limit,
+    });
+
+    return c.json(createSuccessResponse(RESPONSE_STATUS.OK, messages), 200);
+  }
+);
 
 export default conversationRoute;

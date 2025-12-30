@@ -63,11 +63,19 @@ export const findAllMessages = async (
   const nextValue = result.length > limit ? result.pop()?.createdAt : null;
   const nextCursor = nextValue ? createCursor(nextValue.toISOString()) : null;
 
-  return createPaginationResponse(result, {
-    nextCursor,
-    totalElements,
-    hasNext: !!nextCursor,
-  });
+  return createPaginationResponse(
+    result.map(({ id, role, parts, metadata }) => ({
+      id,
+      role,
+      parts,
+      metadata,
+    })),
+    {
+      nextCursor,
+      totalElements,
+      hasNext: !!nextCursor,
+    }
+  );
 };
 
 export const loadPreviousMessages = async (conversationId: string) => {

@@ -14,6 +14,7 @@ import {
   myIdGenerator,
 } from "../ai/ai.service";
 import {
+  findAllMessages,
   insertMessages,
   loadPreviousMessages,
 } from "../messages/message.service";
@@ -206,6 +207,16 @@ export const findAllConversations = async (
       hasNext: !!nextCursor,
     }
   );
+};
+
+export const getMessagesInConversation = async (
+  userId: string,
+  conversationId: string,
+  paginationOption: PaginationOption
+) => {
+  await validateAccessability(userId, conversationId);
+
+  return findAllMessages(conversationId, paginationOption);
 };
 
 export const findFavorites = async (userId: string) => {
