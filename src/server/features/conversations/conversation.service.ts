@@ -6,7 +6,7 @@ import { createCursor } from "@/server/common/utils/create-cursor";
 import { createPaginationResponse } from "@/server/common/utils/response-utils";
 import { PaginationOption } from "@/types/types";
 import { TypeValidationError, validateUIMessages } from "ai";
-import { and, count, desc, eq, gte, isNull } from "drizzle-orm/sql";
+import { and, count, desc, eq, gte, ilike, isNull } from "drizzle-orm/sql";
 import { metadataSchema, MyUIMessage } from "../ai/ai.schemas";
 import {
   generateTitle,
@@ -23,75 +23,58 @@ export const handleSentMessage = async (
   userId: string,
   message: MyUIMessage,
   modelProvider: string,
-  conversationId?: string
+  conversationId: string
 ) => {
+  await validateAccessability(userId, conversationId);
   const serverSideUserId = myIdGenerator();
   const userMessageWithServerId = { ...message, id: serverSideUserId };
 
   // conversationId가 없을 경우 새로운 conversation 생성
-  if (!conversationId) {
-    return generateNewConversationAndAIResponse(
-      userId,
-      userMessageWithServerId,
-      modelProvider
-    );
-  }
+  // if (!conversationId) {
+  //   return generateNewConversationAndAIResponse(
+  //     userId,
+  //     userMessageWithServerId,
+  //     modelProvider
+  //   );
+  // }
 
-  return generateAIResponse(conversationId, message, modelProvider);
+  return generateAIResponse(
+    conversationId,
+    userMessageWithServerId,
+    modelProvider
+  );
 };
 
-const generateNewConversationAndAIResponse = async (
-  userId: string,
-  message: MyUIMessage,
-  modelProvider: string
-) => {
-  try {
-    const validatedMessages = await validateUIMessages<MyUIMessage>({
-      messages: [message],
-    });
+// const generateNewConversationAndAIResponse = async (
+//   userId: string,
+//   message: MyUIMessage,
+//   modelProvider: string
+// ) => {
+//   try {
+//     const validatedMessages = await validateUIMessages<MyUIMessage>({
+//       messages: [message],
+//     });
 
-    const newConversationId = await createConversation(userId);
+//     const title = generateTitle(message);
+//     const newConversationId = await createConversation(userId, title);
 
-    return generateUIMessageStreamResponse({
-      conversationId: newConversationId,
-      messages: validatedMessages,
-      modelProvider,
-      onFinish: async ({ messages }) => {
-        const title = generateTitle(message);
-        await Promise.all([
-          updateConversationTitle(newConversationId, title),
-          insertMessages(newConversationId, messages),
-        ]);
-      },
-    });
-
-    // return streamText({
-    //   model: getModel(modelProvider),
-    //   messages: await convertToModelMessages(validatedMessages),
-    // }).toUIMessageStreamResponse({
-    //   originalMessages: [message],
-    //   generateMessageId: myIdGenerator,
-    //   messageMetadata: () => ({
-    //     modelProvider,
-    //     conversationId: newConversationId,
-    //   }),
-    //   onFinish: async ({ messages }) => {
-    // const title = generateTitle(message);
-    // await Promise.all([
-    //   updateConversationTitle(newConversationId, title),
-    //   insertMessages(newConversationId, messages),
-    // ]);
-    //   },
-    // });
-  } catch (error) {
-    if (error instanceof TypeValidationError) {
-      throw new CommonHttpException(RESPONSE_STATUS.INVALID_REQUEST_FORMAT);
-    } else {
-      console.error(error);
-      throw new CommonHttpException(RESPONSE_STATUS.INTERNAL_SERVER_ERROR);
-    }
-  }
-};
+//     return generateUIMessageStreamResponse({
+//       conversationId: newConversationId,
+//       messages: validatedMessages,
+//       modelProvider,
+//       onFinish: async ({ messages }) => {
+//         await insertMessages(newConversationId, messages);
+//       },
+//     });
+//   } catch (error) {
+//     if (error instanceof TypeValidationError) {
+//       throw new CommonHttpException(RESPONSE_STATUS.INVALID_REQUEST_FORMAT);
+//     } else {
+//       console.error(error);
+//       throw new CommonHttpException(RESPONSE_STATUS.INTERNAL_SERVER_ERROR);
+//     }
+//   }
+// };
 
 const generateAIResponse = async (
   conversationId: string,
@@ -113,11 +96,7 @@ const generateAIResponse = async (
       conversationId,
       messages: validatedMessages,
       modelProvider,
-      onFinish: async ({ messages, responseMessage }) => {
-        console.log(
-          "🚀 ~ generateAIResponse ~ responseMessage:",
-          JSON.stringify(responseMessage, null, 2)
-        );
+      onFinish: async ({ messages }) => {
         console.log(
           "🚀 ~ generateAIResponse ~ messages:",
           JSON.stringify(messages, null, 2)
@@ -136,10 +115,12 @@ const generateAIResponse = async (
   }
 };
 
-const createConversation = async (userId: string) => {
+export const createConversation = async (userId: string, message: string) => {
+  const title = generateTitle(message);
+
   const [newConversation] = await db
     .insert(conversations)
-    .values({ userId, title: "임시 타이틀" })
+    .values({ userId, title })
     .returning();
 
   return newConversation.id;
@@ -167,7 +148,8 @@ export const findAllConversations = async (
     cursor,
     limit,
     includeFavorite,
-  }: PaginationOption & { includeFavorite?: boolean }
+    filter,
+  }: PaginationOption & { includeFavorite?: boolean; filter?: string }
 ) => {
   let decodedCursor: Date | null;
 
@@ -195,7 +177,8 @@ export const findAllConversations = async (
       and(
         eq(conversations.userId, userId),
         decodedCursor ? gte(conversations.updatedAt, decodedCursor) : undefined,
-        !includeFavorite ? isNull(favoriteConversations.id) : undefined
+        !includeFavorite ? isNull(favoriteConversations.id) : undefined,
+        filter ? ilike(conversations.title, filter) : undefined
       )
     )
     .orderBy(desc(conversations.updatedAt))
@@ -207,7 +190,18 @@ export const findAllConversations = async (
   const [{ count: totalElements }] = await db
     .select({ count: count() })
     .from(conversations)
-    .where(eq(conversations.userId, userId));
+    .leftJoin(
+      favoriteConversations,
+      eq(conversations.id, favoriteConversations.conversationId)
+    )
+    .where(
+      and(
+        eq(conversations.userId, userId),
+        decodedCursor ? gte(conversations.updatedAt, decodedCursor) : undefined,
+        !includeFavorite ? isNull(favoriteConversations.id) : undefined,
+        filter ? ilike(conversations.title, filter) : undefined
+      )
+    );
 
   return createPaginationResponse(
     result.map(({ favoriteId, ...rest }) => ({

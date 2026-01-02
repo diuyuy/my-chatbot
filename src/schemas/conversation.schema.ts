@@ -10,8 +10,14 @@ export const ConversationSchema = z.object({
   isFavorite: z.boolean(),
 });
 
+export type Conversation = z.infer<typeof ConversationSchema>;
+
 export const PaginationConversationSchema =
   createPaginationSchema(ConversationSchema);
+
+export type PagenationConversation = z.infer<
+  typeof PaginationConversationSchema
+>;
 
 export const UpdateUserSendMessageSchema = z.object({
   messages: z.array(UserSendMessageSchema),

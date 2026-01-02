@@ -22,13 +22,10 @@ export const generateUIMessageStreamResponse = async ({
   conversationId: string;
   messages: MyUIMessage[];
   modelProvider: string;
-  onFinish: (response: {
-    messages: MyUIMessage[];
-    responseMessage: MyUIMessage;
-  }) => void;
+  onFinish: (response: { messages: MyUIMessage[] }) => void;
 }) => {
   return streamText({
-    model: google("gemini-2.5-flash"),
+    model: google("gemini-2.0-flash"),
     // prompt: "LLM에 대해서 500자 글자로 설명해줘.",
     messages: await convertToModelMessages(messages),
   }).toUIMessageStreamResponse({
@@ -42,20 +39,21 @@ export const generateUIMessageStreamResponse = async ({
   });
 };
 
-export const generateTitle = (message: MyUIMessage) => {
-  const messagePart = message.parts[0];
-  switch (messagePart.type) {
-    case "text":
-      return messagePart.text.length > 20
-        ? `${messagePart.text.substring(0, 20)}...`
-        : messagePart.text;
-    case "file":
-      return `${
-        messagePart.filename ? messagePart.filename : "파일"
-      } 관련 질문`;
-    default:
-      return "알 수 없는 질문";
-  }
+export const generateTitle = (message: string) => {
+  return message.length > 20 ? `${message.substring(0, 20)}...` : message;
+  // const messagePart = message.parts[0];
+  // switch (messagePart.type) {
+  //   case "text":
+  //     return messagePart.text.length > 20
+  //       ? `${messagePart.text.substring(0, 20)}...`
+  //       : messagePart.text;
+  //   case "file":
+  //     return `${
+  //       messagePart.filename ? messagePart.filename : "파일"
+  //     } 관련 질문`;
+  //   default:
+  //     return "알 수 없는 질문";
+  // }
 };
 
 // export const generateTitle = async (messages: MyUIMessage[]) => {

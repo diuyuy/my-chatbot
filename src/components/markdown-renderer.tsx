@@ -156,7 +156,7 @@ export function MarkdownRenderer({
 
   return (
     <div
-      className={`prose prose-neutral dark:prose-invert w-72 md:w-3xl px-6 ${className}`}
+      className={`prose prose-neutral dark:prose-invert w-72 md:w-3xl px-3 ${className}`}
     >
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkMath]}

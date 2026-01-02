@@ -29,7 +29,10 @@ export const conversations = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [
-    index("idx_conversation_title").on(table.title),
+    index("idx_conversation_title_trgm").using(
+      "gin",
+      table.title.op("gin_trgm_ops")
+    ),
     index("idx_conversation_updated_at").on(table.updatedAt),
   ]
 );

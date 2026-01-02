@@ -3,7 +3,7 @@ import z from "zod";
 
 export const SendMessageSchema = z.object({
   message: z.unknown(),
-  conversationId: z.uuid().nonempty().optional(),
+  conversationId: z.uuid().nonempty(),
   modelProvider: z.string().nonempty(),
 });
 

@@ -23,6 +23,17 @@ export function PromptInput({
 }: PromptInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      // form의 submit 이벤트를 트리거
+      const form = e.currentTarget.form;
+      if (form && value.trim()) {
+        form.requestSubmit();
+      }
+    }
+  };
+
   // Auto-sizing textarea logic
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -38,7 +49,7 @@ export function PromptInput({
 
   return (
     <div
-      className={`flex flex-col border rounded-lg bg-background shadow-sm max-w-3xl mx-auto${className}`}
+      className={`mx-4 mb-8 mt-4 flex flex-col border rounded-lg bg-background shadow-sm max-w-3xl mx-auto${className}`}
     >
       {/* Textarea Section */}
       <div className="flex-1 p-3">
@@ -46,6 +57,7 @@ export function PromptInput({
           ref={textareaRef}
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
           className="w-full resize-none border-none outline-none bg-transparent text-sm placeholder:text-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed"
@@ -62,6 +74,7 @@ export function PromptInput({
       <div className="flex items-center justify-between gap-2 px-3 pb-3 pt-0">
         {/* Left: Plus button */}
         <Button
+          type="button"
           variant="ghost"
           size="icon-sm"
           disabled={disabled}
@@ -74,6 +87,7 @@ export function PromptInput({
         <div className="flex items-center gap-2">
           {/* Model Selector Button */}
           <Button
+            type="button"
             variant="outline"
             size="sm"
             disabled={disabled}
@@ -85,6 +99,7 @@ export function PromptInput({
 
           {/* Send Button */}
           <Button
+            type="submit"
             variant="default"
             size="icon-sm"
             disabled={disabled || !value.trim()}

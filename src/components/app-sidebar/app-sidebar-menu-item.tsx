@@ -8,6 +8,8 @@ import {
 } from "@/client-services/conversation.api";
 import { ROUTER_PATH } from "@/constants/router-path";
 import { useUpdateTitleForm } from "@/hooks/useUpdateTitleForm";
+import { QUERY_KEYS } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
 import { EllipsisIcon, PencilIcon, StarIcon, TrashIcon } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -51,7 +53,9 @@ export default function AppSidebarMenuItem({
 }: Props) {
   const { conversationId: currentId } = useParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const form = useUpdateTitleForm(title);
 
   const handleToggleFavorite = async () => {
@@ -67,14 +71,11 @@ export default function AppSidebarMenuItem({
           duration: 1500,
         });
       }
-      router.refresh();
-    } catch (error) {
-      toast.error("즐겨찾기 처리에 실패했습니다.", {
-        action: {
-          label: "확인",
-          onClick: () => {},
-        },
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.getConversationQueryKeys(),
       });
+    } catch (error) {
+      toast.error("즐겨찾기 처리에 실패했습니다.");
       console.error("Failed to toggle favorite:", error);
     }
   };
@@ -91,11 +92,17 @@ export default function AppSidebarMenuItem({
         duration: 1500,
       });
       setIsEditDialogOpen(false);
-      router.refresh();
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.getConversationQueryKeys(),
+      });
     } catch (error) {
       toast.error("제목 변경에 실패했습니다.");
       console.error("Failed to update conversation title:", error);
     }
+  };
+
+  const handleDeleteClick = () => {
+    setIsDeleteDialogOpen(true);
   };
 
   const handleDelete = async () => {
@@ -104,7 +111,13 @@ export default function AppSidebarMenuItem({
       toast.success("대화가 삭제되었습니다.", {
         duration: 1000,
       });
-      router.refresh();
+      setIsDeleteDialogOpen(false);
+      if (conversationId === currentId) {
+        router.replace(ROUTER_PATH.CONVERSATION);
+      }
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.getConversationQueryKeys(),
+      });
     } catch (error) {
       toast.error("대화 삭제에 실패했습니다.");
       console.error("Failed to delete conversation:", error);
@@ -139,7 +152,7 @@ export default function AppSidebarMenuItem({
               이름 변경
             </DropdownMenuItem>
             <Separator />
-            <DropdownMenuItem onClick={handleDelete}>
+            <DropdownMenuItem onClick={handleDeleteClick}>
               <TrashIcon className="text-destructive " />
               <p className="text-destructive hover:text-destructive ">삭제</p>
             </DropdownMenuItem>
@@ -179,6 +192,41 @@ export default function AppSidebarMenuItem({
           </form>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DeleteConfirmDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onConfirm={handleDelete}
+      />
     </>
+  );
+}
+
+function DeleteConfirmDialog({
+  open,
+  onOpenChange,
+  onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>대화 삭제</AlertDialogTitle>
+        </AlertDialogHeader>
+        <p className="text-sm text-muted-foreground">
+          정말로 이 대화를 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.
+        </p>
+        <AlertDialogFooter>
+          <AlertDialogCancel>취소</AlertDialogCancel>
+          <Button variant="destructive" onClick={onConfirm}>
+            삭제
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

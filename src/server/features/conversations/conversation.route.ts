@@ -23,6 +23,7 @@ import { revalidateTag } from "next/cache";
 import { MyUIMessage } from "../ai/ai.schemas";
 import {
   addFavoriteConversation,
+  createConversation,
   deleteFavoriteConversation,
   findAllConversations,
   findFavorites,
@@ -46,6 +47,7 @@ const findAllRoute = createRoute({
       cursor: z.string().optional(),
       limit: z.coerce.number().min(1),
       includeFavorite: z.coerce.boolean().optional(),
+      filter: z.string().optional(),
     }),
   },
   responses: {
@@ -60,16 +62,18 @@ const findAllRoute = createRoute({
       description: "Get all conversations",
     },
     400: createErrorResponseSignature(RESPONSE_STATUS.INVALID_REQUEST_FORMAT),
+    500: createErrorResponseSignature(RESPONSE_STATUS.INTERNAL_SERVER_ERROR),
   },
 });
 
 conversationRoute.openapi(findAllRoute, async (c) => {
-  const { cursor, limit, includeFavorite } = c.req.valid("query");
+  const { cursor, limit, includeFavorite, filter } = c.req.valid("query");
   const user = c.get("user");
   const conversations = await findAllConversations(user.id, {
     cursor,
     limit,
     includeFavorite,
+    filter,
   });
 
   return c.json(createSuccessResponse(RESPONSE_STATUS.OK, conversations), 200);
@@ -122,6 +126,49 @@ conversationRoute.post(
     );
   }
 );
+
+const createConversationRoute = createRoute({
+  method: "post",
+  path: "/new",
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            message: z.string().nonempty(),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: SuccessReponseSchema.extend({
+            data: z.object({
+              conversationId: z.string(),
+            }),
+          }),
+        },
+      },
+      description: "요청 성공 응답",
+    },
+  },
+});
+
+conversationRoute.openapi(createConversationRoute, async (c) => {
+  const { message } = c.req.valid("json");
+  const user = c.get("user");
+
+  const newConversationId = await createConversation(user.id, message);
+
+  return c.json(
+    createSuccessResponse(RESPONSE_STATUS.OK, {
+      conversationId: newConversationId,
+    })
+  );
+});
 
 const deleteConversationRoute = createRoute({
   method: "delete",

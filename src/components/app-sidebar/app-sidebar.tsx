@@ -1,4 +1,4 @@
-import { ComputerIcon } from "lucide-react";
+import { ComputerIcon, SearchIcon } from "lucide-react";
 import { Suspense } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import {
@@ -25,6 +25,11 @@ export default function AppSidebar() {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton>
+                <SearchIcon /> 검색
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton>
                 <ComputerIcon /> 워크스페이스
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -45,15 +50,7 @@ export default function AppSidebar() {
 
         <SidebarGroup>
           <SidebarGroupLabel>채팅 기록</SidebarGroupLabel>
-          <Suspense
-            fallback={
-              <div className="flex justify-center">
-                <Spinner className="size-4" />
-              </div>
-            }
-          >
-            <AppSidebarHistoryMenu />
-          </Suspense>
+          <AppSidebarHistoryMenu />
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>

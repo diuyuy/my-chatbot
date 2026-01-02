@@ -1,7 +1,9 @@
 "use client";
 
+import { ROUTER_PATH } from "@/constants/router-path";
 import { cn } from "@/lib/utils";
 import { EditIcon } from "lucide-react";
+import Link from "next/link";
 import {
   SidebarHeader,
   SidebarMenu,
@@ -32,8 +34,10 @@ export default function AppSidebarHeader() {
         </div>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton className="whitespace-nowrap">
-              <EditIcon /> 새 채팅
+            <SidebarMenuButton className="whitespace-nowrap" asChild>
+              <Link href={ROUTER_PATH.CONVERSATION}>
+                <EditIcon /> 새 채팅
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

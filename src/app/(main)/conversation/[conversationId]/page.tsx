@@ -12,16 +12,12 @@ export default async function ConversationPage({ params }: Props) {
     limit: 20,
     cursor: undefined,
   });
-  console.log(
-    "🚀 ~ ConversationPage ~ initialMessages:",
-    JSON.stringify(initialMessages.items, null, 2)
-  );
 
   return (
     <div className="w-full min-h-screen">
       <ChatWindow
         conversationId={conversationId}
-        initalMessages={initialMessages.items}
+        initialMessages={initialMessages.items}
       />
     </div>
   );
