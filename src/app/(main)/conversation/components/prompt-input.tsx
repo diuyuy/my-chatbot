@@ -2,9 +2,11 @@
 
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Plus, Send } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 interface PromptInputProps {
+  value: string;
+  setValue: (value: string) => void;
   className?: string;
   placeholder?: string;
   disabled?: boolean;
@@ -12,12 +14,13 @@ interface PromptInputProps {
 }
 
 export function PromptInput({
+  value,
+  setValue,
   className = "",
   placeholder = "메시지를 입력하세요...",
   disabled = false,
   maxHeight = 200,
 }: PromptInputProps) {
-  const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-sizing textarea logic
@@ -35,7 +38,7 @@ export function PromptInput({
 
   return (
     <div
-      className={`flex flex-col border rounded-lg bg-background shadow-sm ${className}`}
+      className={`flex flex-col border rounded-lg bg-background shadow-sm max-w-3xl mx-auto${className}`}
     >
       {/* Textarea Section */}
       <div className="flex-1 p-3">
