@@ -1,8 +1,8 @@
+import { MyUIMessage } from "@/server/features/ai/ai.schemas";
 import {
   index,
   integer,
   jsonb,
-  pgEnum,
   pgTable,
   text,
   timestamp,
@@ -11,15 +11,7 @@ import {
   vector,
 } from "drizzle-orm/pg-core";
 import { user } from "./auth-schema";
-
-// Enums
-export const messageRoleEnum = pgEnum("message_role", [
-  "user",
-  "assistant",
-  "system",
-  "tool",
-]);
-export const fileTypeEnum = pgEnum("file_type", ["image", "audio", "pdf"]);
+import { fileTypeEnum, messageRoleEnum } from "./enums";
 
 // Tables
 export const conversations = pgTable(
@@ -33,10 +25,14 @@ export const conversations = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at")
       .notNull()
+      .defaultNow()
       .$onUpdate(() => new Date()),
   },
   (table) => [
-    index("idx_conversation_title").on(table.title),
+    index("idx_conversation_title_trgm").using(
+      "gin",
+      table.title.op("gin_trgm_ops")
+    ),
     index("idx_conversation_updated_at").on(table.updatedAt),
   ]
 );
@@ -49,6 +45,7 @@ export const favoriteConversations = pgTable(
     conversationId: uuid("conversation_id").references(() => conversations.id, {
       onDelete: "cascade",
     }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [
     unique("unique_user_conversation").on(table.userId, table.conversationId),
@@ -58,14 +55,13 @@ export const favoriteConversations = pgTable(
 export const messages = pgTable(
   "messages",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: text("id").primaryKey(),
     conversationId: uuid("conversation_id")
       .notNull()
       .references(() => conversations.id, { onDelete: "cascade" }),
     role: messageRoleEnum("role").notNull(),
-    content: text("content"),
-    modelProvider: text("model_provider"),
-    tokenUsed: integer("token_used"),
+    metadata: jsonb("metadata").$type<MyUIMessage["metadata"]>(),
+    parts: jsonb("parts").$type<MyUIMessage["parts"]>().notNull(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [index("idx_messages_created_at").on(table.createdAt)]
@@ -73,7 +69,7 @@ export const messages = pgTable(
 
 export const messageAttachments = pgTable("message_attachments", {
   id: uuid("id").primaryKey().defaultRandom(),
-  messageId: uuid("message_id")
+  messageId: text("message_id")
     .notNull()
     .references(() => messages.id, { onDelete: "cascade" }),
   fileType: fileTypeEnum("file_type").notNull(),
@@ -85,7 +81,7 @@ export const messageAttachments = pgTable("message_attachments", {
 
 export const toolInvocations = pgTable("tool_invocations", {
   id: uuid("id").primaryKey().defaultRandom(),
-  messageId: uuid("message_id")
+  messageId: text("message_id")
     .notNull()
     .references(() => messages.id, { onDelete: "cascade" }),
   toolName: text("tool_name").notNull(),
@@ -94,14 +90,20 @@ export const toolInvocations = pgTable("tool_invocations", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const documentChunks = pgTable("document_chunks", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  content: text("content").notNull(),
-  tag: text("tag"), // 문서 필터링 용 태그
-  embedding: vector("embedding", { dimensions: 1536 }),
-  metadata: jsonb("metadata"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+export const documentChunks = pgTable(
+  "document_chunks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    content: text("content").notNull(),
+    tag: text("tag"), // 문서 필터링 용 태그
+    embedding: vector("embedding", { dimensions: 1536 }),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("ip_index").using("hnsw", table.embedding.op("vector_ip_ops")),
+  ]
+);
