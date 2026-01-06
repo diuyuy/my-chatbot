@@ -3,16 +3,31 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { DOCS_LANGUAGE } from "@/constants/docs-language";
+import { SelectGroup } from "@radix-ui/react-select";
 import { useState } from "react";
+import { useCreateEmbeddingMutation } from "../hooks/use-create-embedding-mutation";
 
 export function TextInputSection() {
   const [text, setText] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("none");
+
+  const createEmbeddingMutation = useCreateEmbeddingMutation();
 
   const handleSubmit = () => {
     if (text.trim()) {
-      // TODO: 서버에 텍스트 전송 로직
-      console.log("Submitting text:", text);
+      createEmbeddingMutation.mutate({
+        content: text,
+        docsLanguage: selectedLanguage as (typeof DOCS_LANGUAGE)[number],
+      });
     }
   };
 
@@ -22,6 +37,24 @@ export function TextInputSection() {
         <CardTitle>텍스트 입력</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="language-select">언어</Label>
+          <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+            <SelectTrigger id="language-select" className="w-full">
+              <SelectValue placeholder="언어를 선택하세요" />
+            </SelectTrigger>
+            <SelectContent position="popper">
+              <SelectGroup className="max-h-60">
+                {DOCS_LANGUAGE.map((language) => (
+                  <SelectItem key={language} value={language}>
+                    {language}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="space-y-2">
           <Label htmlFor="text-input">내용</Label>
           <Textarea
@@ -36,10 +69,10 @@ export function TextInputSection() {
 
         <Button
           onClick={handleSubmit}
-          disabled={!text.trim()}
+          disabled={!text.trim() || createEmbeddingMutation.isPending}
           className="w-full"
         >
-          제출
+          {createEmbeddingMutation.isPending ? "제출 중..." : "제출"}
         </Button>
       </CardContent>
     </Card>

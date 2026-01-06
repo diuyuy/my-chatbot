@@ -8,7 +8,7 @@ import {
   createSuccessResponse,
 } from "@/server/common/utils/response-utils";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
-import { createEmbedding } from "./rag.service";
+import { createEmbedding, findRelevantContent } from "./rag.service";
 
 const ragRoute = new OpenAPIHono<Env>();
 
@@ -50,6 +50,29 @@ ragRoute.openapi(createEmbeddingRoute, async (c) => {
     createSuccessResponse(RESPONSE_STATUS.EMBEDDING_CREATED, null),
     200
   );
+});
+
+const findContentRoute = createRoute({
+  method: "get",
+  path: "/",
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: SuccessReponseSchema.extend({
+            data: z.string(),
+          }),
+        },
+      },
+      description: "요청 성공 응답",
+    },
+  },
+});
+
+ragRoute.openapi(findContentRoute, async (c) => {
+  const result = await findRelevantContent(db, "What is Rag");
+
+  return c.json(createSuccessResponse(RESPONSE_STATUS.OK, result), 200);
 });
 
 export default ragRoute;

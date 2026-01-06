@@ -108,16 +108,16 @@ conversationRoute.post(
   "/",
   zValidator("json", SendMessageSchema, zodValidationHook),
   async (c) => {
-    const { message, modelProvider, conversationId } = c.req.valid("json");
-    console.log("🚀 ~ modelProvider:", modelProvider);
+    const { message, modelProvider, conversationId, isRag } =
+      c.req.valid("json");
     const user = c.get("user");
-    revalidateTag(CACHE_TAG.getHistoryCacheTag(user.id), { expire: 0 });
 
     return handleSentMessage(
       user.id,
       message as MyUIMessage,
       modelProvider,
-      conversationId
+      conversationId,
+      isRag ?? false
     );
   }
 );

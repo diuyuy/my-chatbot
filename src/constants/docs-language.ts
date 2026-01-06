@@ -1,4 +1,5 @@
 export const DOCS_LANGUAGE = [
+  "none",
   "go",
   "html",
   "rust",

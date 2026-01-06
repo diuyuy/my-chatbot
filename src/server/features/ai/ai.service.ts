@@ -5,33 +5,55 @@ import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import {
   convertToModelMessages,
   createIdGenerator,
+  embed,
   embedMany,
+  InvalidToolInputError,
+  NoSuchToolError,
   smoothStream,
+  stepCountIs,
   streamText,
 } from "ai";
 import { MyUIMessage } from "./ai.schemas";
+import { SYSTEM_PROMPTS } from "./system-prompts";
+import { toolSet } from "./too-set";
 
 const getModel = (modelProvider: string) => {
   console.log("🚀 ~ getModel ~ modelProvider:", modelProvider);
   return google("gemini-2.0-flash");
 };
 
+const embeddingModel = openai.embeddingModel("text-embedding-3-small");
+
 export const generateUIMessageStreamResponse = async ({
   conversationId,
   messages,
   modelProvider,
   onFinish,
+  context,
 }: {
   conversationId: string;
   messages: MyUIMessage[];
   modelProvider: string;
   onFinish: (response: { messages: MyUIMessage[] }) => void;
+  context?: string;
 }) => {
   return streamText({
     model: getModel(modelProvider),
-    // prompt: "LLM에 대해서 500자 글자로 설명해줘.",
+    system: SYSTEM_PROMPTS.getSystemPrompt(context),
     messages: await convertToModelMessages(messages),
     experimental_transform: smoothStream(),
+    tools: toolSet,
+    stopWhen: stepCountIs(5),
+    onStepFinish: ({ toolCalls, toolResults }) => {
+      console.log(
+        "🚀 ~ generateUIMessageStreamResponse ~ toolCalls:",
+        toolCalls
+      );
+      console.log(
+        "🚀 ~ generateUIMessageStreamResponse ~ toolResults:",
+        toolResults
+      );
+    },
   }).toUIMessageStreamResponse({
     originalMessages: messages,
     generateMessageId: myIdGenerator,
@@ -40,59 +62,55 @@ export const generateUIMessageStreamResponse = async ({
       conversationId,
     }),
     onFinish,
+    onError: (error) => {
+      if (NoSuchToolError.isInstance(error)) {
+        return "The model tried to call a unknown tool.";
+      } else if (InvalidToolInputError.isInstance(error)) {
+        return "The model called a tool with invalid inputs.";
+      } else if (error instanceof Error) {
+        console.log(error.message);
+        return error.message;
+      } else {
+        return "An unknown error occurred.";
+      }
+    },
   });
 };
 
 export const generateTitle = (message: string) => {
   return message.length > 20 ? `${message.substring(0, 20)}...` : message;
-  // const messagePart = message.parts[0];
-  // switch (messagePart.type) {
-  //   case "text":
-  //     return messagePart.text.length > 20
-  //       ? `${messagePart.text.substring(0, 20)}...`
-  //       : messagePart.text;
-  //   case "file":
-  //     return `${
-  //       messagePart.filename ? messagePart.filename : "파일"
-  //     } 관련 질문`;
-  //   default:
-  //     return "알 수 없는 질문";
-  // }
 };
 
-// export const generateTitle = async (messages: MyUIMessage[]) => {
-//   const { text } = await generateText({
-//     model: google("gemini-2.5-flash"),
-//     system: SYSTEM_PROMPTS.GENERATE_TITLE,
-//     prompt: JSON.stringify(messages),
-//   });
-
-//   return text;
-// };
-
-export const myIdGenerator = createIdGenerator({
+const myIdGenerator = createIdGenerator({
   prefix: "msg",
   size: 16,
 });
 
-export const generateEmbeddings = async (value: string) => {
-  const chunks = await generateChunks(value);
+export const generateEmbeddings = async (
+  value: string,
+  docsLanguage?: DocsLanguage
+) => {
+  const chunks = await generateChunks(value, docsLanguage);
 
-  const { embeddings, responses } = await embedMany({
-    model: openai.embeddingModel("text-embedding-3-small"),
+  const { embeddings } = await embedMany({
+    model: embeddingModel,
     values: chunks,
   });
-
-  console.log(
-    "🚀 ~ generateEmbeddings ~ responses:",
-    JSON.stringify(responses, null, 2)
-  );
 
   return embeddings.map((e, i) => ({ content: chunks[i], embedding: e }));
 };
 
+export const generateEmbedding = async (value: string) => {
+  const input = value.replaceAll("\\n", " ");
+  const { embedding } = await embed({
+    model: embeddingModel,
+    value: input,
+  });
+  return embedding;
+};
+
 const generateChunks = async (value: string, docsLanguage?: DocsLanguage) => {
-  if (docsLanguage) {
+  if (docsLanguage && docsLanguage !== "none") {
     const splitter = RecursiveCharacterTextSplitter.fromLanguage(docsLanguage);
 
     return splitter.splitText(value);
