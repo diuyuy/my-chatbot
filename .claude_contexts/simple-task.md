@@ -1,5 +1,10 @@
-# useIsCreatingStore 리팩토링
+# AppSidebarFooter 구현 작업
 
-`src\hooks\use-is-creating-new-conversation.ts` zustand store에서 `isRag`와 `modelProvider` 및 이 속성들을 조회, 수정하는 메서드들을 별도의 zustand store로 분리해주세요.
+`src\components\app-sidebar\app-sidebar-footer.tsx`에 다음과 같은 요구사항으로 기능 추가해주세요.
 
-또한 `src\app\(main)\conversation\page.tsx`와 `src\app\(main)\conversation\components\chat-window.tsx`에서 `useIsCreatingNewConversation` 사용하고 있는데, 이 부분도 수정사항 반영해주세요.
+**요구사항**:
+1. `src\components\ui\dropdown-menu.tsx` 사용해서 `SidebarMenuButton` 클릭 시 DropdownMenu open 되게 구현해주세요.
+2. `DropdownMenu` 첫 번째 버튼: 테마 설정 버튼
+  - `DropdownMenuSub` 사용해서 라이트, 다크, 시스템 3가지 옵션 선택 가능하게 해주세요.
+3. `DropdownMenu` 두 번째 버튼: 로그아웃 버튼
+  - `src\lib\auth-client.ts` 사용해서 `authClient.signOut()` 통해 로그아웃 하게 하고, 로그아웃 시, 로그인 페이지로 redirect 되게 해주세요.
