@@ -33,7 +33,9 @@ interface PromptInputProps {
   value: string;
   setValue: (value: string) => void;
   files: File[];
-  setFiles: (files: File[]) => void;
+  addFile: (file: File) => void;
+  removeFile: (index: number) => void;
+  previewUrls: string[];
   stop?: () => void;
   isSending: boolean;
   className?: string;
@@ -46,7 +48,9 @@ export function PromptInput({
   value,
   setValue,
   files,
-  setFiles,
+  addFile,
+  removeFile,
+  previewUrls,
   isSending,
   stop,
   className = "",
@@ -99,7 +103,7 @@ export function PromptInput({
       return;
     }
 
-    setFiles([...files, newFile]);
+    addFile(newFile);
     e.target.value = ""; // Reset input
   };
 
@@ -108,7 +112,7 @@ export function PromptInput({
   };
 
   const handleRemoveFile = (index: number) => {
-    setFiles(files.filter((_, i) => i !== index));
+    removeFile(index);
   };
 
   // Auto-sizing textarea logic
@@ -149,10 +153,10 @@ export function PromptInput({
                 key={index}
                 className="relative flex items-center gap-2 p-2 border rounded-lg bg-muted/50 group"
               >
-                {isImage && (
+                {isImage && previewUrls[index] && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={URL.createObjectURL(file)}
+                    src={previewUrls[index]}
                     alt={file.name}
                     className="w-16 h-16 object-cover rounded"
                   />

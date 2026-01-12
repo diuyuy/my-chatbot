@@ -56,8 +56,7 @@ export default function ChatWindow({ conversationId, initialMessages }: Props) {
           },
         }
       );
-      promptInput.setValue("");
-      promptInput.setFiles([]);
+      promptInput.clearState();
     }
   };
 
