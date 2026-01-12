@@ -3,34 +3,29 @@ import { create } from "zustand";
 type State = {
   isCreating: boolean;
   message: string | null;
-  isRag: boolean;
-  modelProvider: string;
+  files: File[];
 };
 
 type Action = {
-  setIsCreating: (data: Omit<State, "isCreating">) => void;
+  setIsCreating: (message: string, files: File[]) => void;
   setIsCreated: () => void;
-  setModelProvider: (model: string) => void;
-  setIsRag: (value: boolean) => void;
   consumeMessage: () => string | null;
-  getRequestData: () => Pick<State, "modelProvider" | "isRag">;
+  consumeFiles: () => File[];
 };
 
 export const useIsCreatingNewConversation = create<State & Action>(
   (set, get) => ({
     isCreating: false,
     message: null,
-    isRag: false,
-    modelProvider: "gemini-2.0-flash",
-    setIsCreating: (data: Omit<State, "isCreating">) =>
-      set({ isCreating: true, ...data }),
+    files: [],
+    setIsCreating: (message: string, files: File[]) =>
+      set({ isCreating: true, message, files }),
     setIsCreated: () =>
       set({
         isCreating: false,
         message: null,
+        files: [],
       }),
-    setModelProvider: (model: string) => set({ modelProvider: model }),
-    setIsRag: (value: boolean) => set({ isRag: value }),
     consumeMessage: () => {
       const msg = get().message;
       if (msg) {
@@ -38,11 +33,12 @@ export const useIsCreatingNewConversation = create<State & Action>(
       }
       return msg;
     },
-    getRequestData: () => {
-      return {
-        modelProvider: get().modelProvider,
-        isRag: get().isRag,
-      };
+    consumeFiles: () => {
+      const files = get().files;
+      if (files) {
+        set({ files: [] });
+      }
+      return files;
     },
   })
 );

@@ -6,23 +6,23 @@ import { ROUTER_PATH } from "@/constants/router-path";
 import { useIsCreatingNewConversation } from "@/hooks/use-is-creating-new-conversation";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent } from "react";
 import { toast } from "sonner";
 import { PromptInput } from "./components/prompt-input";
+import { usePromptInput } from "./hooks/use-prompt-input";
 
 export default function NewChatPage() {
-  const [input, setInput] = useState("");
-  const { modelProvider, setModelProvider, isRag, setIsRag } =
-    useIsCreatingNewConversation();
+  const promptInput = usePromptInput();
   const router = useRouter();
+
   const { setIsCreating } = useIsCreatingNewConversation();
 
   const mutation = useMutation({
     mutationKey: QUERY_KEYS.getConversationQueryKeys(),
     mutationFn: createNewConversation,
     onSuccess: (conversationId) => {
-      setIsCreating({ message: input.trim(), modelProvider, isRag });
-      setInput("");
+      setIsCreating(promptInput.value.trim(), promptInput.files);
+      promptInput.clearState();
       router.push(`${ROUTER_PATH.CONVERSATION}/${conversationId}`);
     },
     onError: (error) => {
@@ -34,8 +34,8 @@ export default function NewChatPage() {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
 
-    if (input.trim()) {
-      mutation.mutate(input.trim());
+    if (promptInput.value.trim()) {
+      mutation.mutate(promptInput.value.trim());
     }
   };
 
@@ -46,15 +46,7 @@ export default function NewChatPage() {
           채팅을 입력해보세요!
         </div>
         <form onSubmit={handleSubmit}>
-          <PromptInput
-            value={input}
-            setValue={setInput}
-            modelProvider={modelProvider}
-            setModelProvider={setModelProvider}
-            isRag={isRag}
-            setIsRag={setIsRag}
-            isSending={false}
-          />
+          <PromptInput {...promptInput} isSending={false} />
         </form>
       </div>
     </div>

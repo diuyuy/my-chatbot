@@ -1,3 +1,6 @@
+import { geminiModels, openaiModels } from "@/constants/model-providers";
+import { RESPONSE_STATUS } from "@/constants/response-status";
+import { CommonHttpException } from "@/server/common/errors/common-http-exception";
 import { DocsLanguage } from "@/types/types";
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
@@ -18,8 +21,17 @@ import { SYSTEM_PROMPTS } from "./system-prompts";
 import { toolSet } from "./too-set";
 
 const getModel = (modelProvider: string) => {
-  console.log("🚀 ~ getModel ~ modelProvider:", modelProvider);
-  return google("gemini-2.0-flash");
+  if (geminiModels.includes(modelProvider)) {
+    console.log("gemini called");
+    return google(modelProvider);
+  }
+
+  if (openaiModels.includes(modelProvider)) {
+    console.log("openai called");
+    return openai(modelProvider);
+  }
+
+  throw new CommonHttpException(RESPONSE_STATUS.INVALID_REQUEST_FORMAT);
 };
 
 const embeddingModel = openai.embeddingModel("text-embedding-3-small");

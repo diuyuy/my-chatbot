@@ -4,11 +4,13 @@ import { createEmbedding } from "@/client-services/rag.api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
+import { QUERY_KEYS } from "@/constants/query-keys";
 import {
   ExtractedTextData,
   extractTextFromPdf,
   extractTextFromTxtFile,
 } from "@/lib/text-extraction";
+import { useQueryClient } from "@tanstack/react-query";
 import { FileText, Upload, X } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
@@ -17,6 +19,7 @@ import { toast } from "sonner";
 export function FileUploadSection() {
   const [file, setFile] = useState<File | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
+  const queryClient = useQueryClient();
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -63,6 +66,9 @@ export function FileUploadSection() {
 
       await createEmbedding(extractedData);
 
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.getRagQueryKeys(),
+      });
       toast.success(`${file.name} 텍스트 추출 완료`);
     } catch (error) {
       console.error("File processing error:", error);

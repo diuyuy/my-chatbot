@@ -4,6 +4,7 @@ import { ROUTER_PATH } from "@/constants/router-path";
 import { cn } from "@/lib/utils";
 import { ComputerIcon, EditIcon, SearchIcon } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   SidebarHeader,
   SidebarMenu,
@@ -15,6 +16,8 @@ import AppSidebarTrigger from "./app-sidebar-trigger";
 
 export default function AppSidebarHeader() {
   const { open } = useSidebar();
+  const pathname = usePathname();
+
   return (
     <SidebarHeader>
       <div className="space-y-4">
@@ -43,14 +46,22 @@ export default function AppSidebarHeader() {
         </SidebarMenu>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild className="whitespace-nowrap">
+            <SidebarMenuButton
+              asChild
+              isActive={pathname === ROUTER_PATH.SEARCH}
+              className="whitespace-nowrap"
+            >
               <Link href={ROUTER_PATH.SEARCH}>
                 <SearchIcon /> 검색
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild className="whitespace-nowrap">
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith(ROUTER_PATH.WORKSPACE)}
+              className="whitespace-nowrap"
+            >
               <Link href={ROUTER_PATH.WORKSPACE}>
                 <ComputerIcon /> 워크스페이스
               </Link>
