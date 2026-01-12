@@ -17,22 +17,23 @@ import {
   SelectLabel,
   SelectTrigger,
 } from "@/components/ui/select";
+import { useConversationSettings } from "@/hooks/use-conversation-settings";
 import {
   FileSearchIcon,
+  FileText,
   PaperclipIcon,
   Plus,
   Send,
   SquareIcon,
+  X,
 } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 interface PromptInputProps {
   value: string;
   setValue: (value: string) => void;
-  modelProvider: string;
-  setModelProvider: (provider: string) => void;
-  isRag: boolean;
-  setIsRag: (value: boolean) => void;
+  files: File[];
+  setFiles: (files: File[]) => void;
   stop?: () => void;
   isSending: boolean;
   className?: string;
@@ -44,17 +45,20 @@ interface PromptInputProps {
 export function PromptInput({
   value,
   setValue,
-  isRag,
-  setIsRag,
-  modelProvider,
-  setModelProvider,
+  files,
+  setFiles,
   isSending,
+  stop,
   className = "",
   placeholder = "메시지를 입력하세요...",
   disabled = false,
   maxHeight = 200,
 }: PromptInputProps) {
+  // 전역 상태는 컴포넌트 내부에서 직접 가져오기
+  const { modelProvider, setModelProvider, isRag, setIsRag } =
+    useConversationSettings();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -64,6 +68,47 @@ export function PromptInput({
         form.requestSubmit();
       }
     }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = e.target.files;
+    if (!selectedFiles || selectedFiles.length === 0) return;
+
+    const newFile = selectedFiles[0];
+
+    // 파일 타입 검사 (.txt 또는 이미지만 허용)
+    const validImageTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+    ];
+    const isValidFile =
+      newFile.type === "text/plain" || validImageTypes.includes(newFile.type);
+
+    if (!isValidFile) {
+      alert("txt 파일 또는 이미지만 업로드할 수 있습니다.");
+      e.target.value = "";
+      return;
+    }
+
+    // 최대 파일 개수 검사 (10개)
+    if (files && files.length >= 10) {
+      alert("최대 10개의 파일만 업로드할 수 있습니다.");
+      e.target.value = "";
+      return;
+    }
+
+    setFiles([...files, newFile]);
+    e.target.value = ""; // Reset input
+  };
+
+  const handleFileUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setFiles(files.filter((_, i) => i !== index));
   };
 
   // Auto-sizing textarea logic
@@ -83,6 +128,57 @@ export function PromptInput({
     <div
       className={`mx-4 mb-8 mt-4 flex flex-col border rounded-lg bg-background shadow-sm max-w-3xl mx-auto${className}`}
     >
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".txt,image/*"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+
+      {/* File Preview Section */}
+      {files.length > 0 && (
+        <div className="flex flex-wrap gap-2 p-3 pb-0">
+          {files.map((file, index) => {
+            const isImage = file.type.startsWith("image/");
+            const isText = file.type === "text/plain";
+
+            return (
+              <div
+                key={index}
+                className="relative flex items-center gap-2 p-2 border rounded-lg bg-muted/50 group"
+              >
+                {isImage && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt={file.name}
+                    className="w-16 h-16 object-cover rounded"
+                  />
+                )}
+                {isText && (
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-8 h-8 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground max-w-25 truncate">
+                      {file.name}
+                    </span>
+                  </div>
+                )}
+                {/* Remove button */}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveFile(index)}
+                  className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:cursor-pointer"
+                >
+                  <X strokeWidth={3} className="w-3 h-3" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Textarea Section */}
       <div className="flex-1 p-3">
         <textarea
@@ -118,7 +214,7 @@ export function PromptInput({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleFileUploadClick}>
               <PaperclipIcon />
               파일 업로드
             </DropdownMenuItem>

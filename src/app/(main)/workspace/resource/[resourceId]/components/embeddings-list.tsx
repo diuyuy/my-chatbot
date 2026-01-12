@@ -209,7 +209,7 @@ function EmbeddingDetailsDialog({
           </div>
           <div>
             <h3 className="mb-2 text-sm font-medium">내용</h3>
-            <p className="whitespace-pre-wrap text-sm border border-muted p-2 max-h-72 overflow-y-auto rounded-md">
+            <p className="max-w-full wrap-break-word whitespace-pre-wrap text-sm border border-muted p-2 max-h-72 overflow-y-auto rounded-md">
               {embedding?.content}
             </p>
           </div>

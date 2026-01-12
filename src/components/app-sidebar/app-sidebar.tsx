@@ -16,7 +16,9 @@ import AppSidebarHistoryMenu from "./app-sidebar-history-menu";
 export default function AppSidebar() {
   return (
     <Sidebar variant="sidebar" collapsible="icon">
-      <AppSidebarHeader />
+      <Suspense>
+        <AppSidebarHeader />
+      </Suspense>
       <SidebarContent className="whitespace-nowrap">
         <SidebarGroup>
           <SidebarGroupLabel>즐겨찾기</SidebarGroupLabel>

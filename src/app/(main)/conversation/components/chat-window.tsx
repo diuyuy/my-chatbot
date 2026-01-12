@@ -15,9 +15,11 @@ import { useIsCreatingNewConversation } from "@/hooks/use-is-creating-new-conver
 import { DeleteMessagesDto } from "@/schemas/message.schema";
 import { MyUIMessage } from "@/server/features/ai/ai.schemas";
 import { Copy, RefreshCw } from "lucide-react";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect } from "react";
 import { toast } from "sonner";
+import { convertToFileList } from "../../../../lib/utils";
 import { useMyChat } from "../hooks/use-my-chat";
+import { usePromptInput } from "../hooks/use-prompt-input";
 import { PromptInput } from "./prompt-input";
 
 type Props = {
@@ -25,10 +27,10 @@ type Props = {
   initialMessages?: MyUIMessage[];
 };
 export default function ChatWindow({ conversationId, initialMessages }: Props) {
-  const { consumeMessage } = useIsCreatingNewConversation();
-  const { getRequestData, modelProvider, setModelProvider, isRag, setIsRag } =
-    useConversationSettings();
-  const [input, setInput] = useState("");
+  const { consumeMessage, consumeFiles } = useIsCreatingNewConversation();
+  const { getRequestData, modelProvider, isRag } = useConversationSettings();
+
+  const promptInput = usePromptInput();
 
   const { messages, sendMessage, status, regenerate, stop } = useMyChat(
     conversationId,
@@ -38,9 +40,15 @@ export default function ChatWindow({ conversationId, initialMessages }: Props) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    if (input.trim()) {
+    if (promptInput.value.trim()) {
       sendMessage(
-        { text: input.trim() },
+        {
+          text: promptInput.value.trim(),
+          files:
+            promptInput.files.length > 0
+              ? convertToFileList(promptInput.files)
+              : undefined,
+        },
         {
           body: {
             modelProvider,
@@ -48,7 +56,8 @@ export default function ChatWindow({ conversationId, initialMessages }: Props) {
           },
         }
       );
-      setInput("");
+      promptInput.setValue("");
+      promptInput.setFiles([]);
     }
   };
 
@@ -74,17 +83,20 @@ export default function ChatWindow({ conversationId, initialMessages }: Props) {
 
   useEffect(() => {
     const msg = consumeMessage();
+    const files = consumeFiles();
     if (msg) {
-      const da = getRequestData();
-      console.log("🚀 ~ ChatWindow ~ da:", da);
+      console.log("🚀 ~ ChatWindow ~ files:", files);
       sendMessage(
-        { text: msg },
+        {
+          text: msg,
+          files: files.length > 0 ? convertToFileList(files) : undefined,
+        },
         {
           body: getRequestData(),
         }
       );
     }
-  }, [consumeMessage, getRequestData, sendMessage]);
+  }, [consumeMessage, consumeFiles, getRequestData, sendMessage]);
 
   return (
     <div className="w-full mx-auto h-screen px-2 flex flex-col">
@@ -100,15 +112,46 @@ export default function ChatWindow({ conversationId, initialMessages }: Props) {
             <div key={message.id}>
               {message.role === "user" ? (
                 <div className="flex justify-end">
-                  <div className="max-w-md py-3 px-4 bg-card rounded-md">
-                    {message.parts
-                      .map((part) => (part.type === "text" ? part.text : ""))
-                      .join("")}
+                  <div className="space-y-2">
+                    {message.parts.map((part, index) => {
+                      if (part.type !== "file") {
+                        return null;
+                      }
+                      if (part.mediaType.startsWith("image")) {
+                        return (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img key={index} src={part.url} alt={part.filename} />
+                        );
+                      }
+
+                      return null;
+                    })}
+                    <div className="max-w-md py-3 px-4 bg-card rounded-md">
+                      {message.parts
+                        .map((part) => (part.type === "text" ? part.text : ""))
+                        .join("")}
+                    </div>
                   </div>
                 </div>
               ) : (
                 <>
                   <div>
+                    {message.parts.map((part, index) => {
+                      if (part.type === "file") {
+                        if (part.mediaType === "image") {
+                          return (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              key={index}
+                              src={part.url}
+                              alt={part.filename}
+                            />
+                          );
+                        }
+                      }
+
+                      return null;
+                    })}
                     <MarkdownRenderer>
                       {message.parts
                         .map((part) => (part.type === "text" ? part.text : ""))
@@ -188,12 +231,7 @@ export default function ChatWindow({ conversationId, initialMessages }: Props) {
       </div>
       <form onSubmit={handleSubmit}>
         <PromptInput
-          value={input}
-          setValue={setInput}
-          modelProvider={modelProvider}
-          setModelProvider={setModelProvider}
-          isRag={isRag}
-          setIsRag={setIsRag}
+          {...promptInput}
           stop={stop}
           isSending={status === "streaming" || status === "submitted"}
         />

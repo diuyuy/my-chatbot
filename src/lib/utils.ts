@@ -22,3 +22,13 @@ export const debounce = <T>(
     }, delay);
   };
 };
+
+export const convertToFileList = (files: File[]): FileList => {
+  const dataTransfer = new DataTransfer();
+
+  files.forEach((file: File) => {
+    dataTransfer.items.add(file);
+  });
+
+  return dataTransfer.files;
+};
