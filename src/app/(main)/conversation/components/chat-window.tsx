@@ -10,6 +10,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useConversationSettings } from "@/hooks/use-conversation-settings";
 import { useIsCreatingNewConversation } from "@/hooks/use-is-creating-new-conversation";
 import { DeleteMessagesDto } from "@/schemas/message.schema";
 import { MyUIMessage } from "@/server/features/ai/ai.schemas";
@@ -24,14 +25,9 @@ type Props = {
   initialMessages?: MyUIMessage[];
 };
 export default function ChatWindow({ conversationId, initialMessages }: Props) {
-  const {
-    consumeMessage,
-    getRequestData,
-    modelProvider,
-    setModelProvider,
-    isRag,
-    setIsRag,
-  } = useIsCreatingNewConversation();
+  const { consumeMessage } = useIsCreatingNewConversation();
+  const { getRequestData, modelProvider, setModelProvider, isRag, setIsRag } =
+    useConversationSettings();
   const [input, setInput] = useState("");
 
   const { messages, sendMessage, status, regenerate, stop } = useMyChat(

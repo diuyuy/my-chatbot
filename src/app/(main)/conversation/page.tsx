@@ -3,6 +3,7 @@
 import { createNewConversation } from "@/client-services/conversation.api";
 import { QUERY_KEYS } from "@/constants/query-keys";
 import { ROUTER_PATH } from "@/constants/router-path";
+import { useConversationSettings } from "@/hooks/use-conversation-settings";
 import { useIsCreatingNewConversation } from "@/hooks/use-is-creating-new-conversation";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -13,7 +14,7 @@ import { PromptInput } from "./components/prompt-input";
 export default function NewChatPage() {
   const [input, setInput] = useState("");
   const { modelProvider, setModelProvider, isRag, setIsRag } =
-    useIsCreatingNewConversation();
+    useConversationSettings();
   const router = useRouter();
   const { setIsCreating } = useIsCreatingNewConversation();
 
@@ -21,7 +22,7 @@ export default function NewChatPage() {
     mutationKey: QUERY_KEYS.getConversationQueryKeys(),
     mutationFn: createNewConversation,
     onSuccess: (conversationId) => {
-      setIsCreating({ message: input.trim(), modelProvider, isRag });
+      setIsCreating(input.trim());
       setInput("");
       router.push(`${ROUTER_PATH.CONVERSATION}/${conversationId}`);
     },
