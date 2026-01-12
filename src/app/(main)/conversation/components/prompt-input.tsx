@@ -17,6 +17,8 @@ import {
   SelectLabel,
   SelectTrigger,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { geminiModels, openaiModels } from "@/constants/model-providers";
 import { useConversationSettings } from "@/hooks/use-conversation-settings";
 import {
   FileSearchIcon,
@@ -59,7 +61,7 @@ export function PromptInput({
   maxHeight = 200,
 }: PromptInputProps) {
   // 전역 상태는 컴포넌트 내부에서 직접 가져오기
-  const { modelProvider, setModelProvider, isRag, setIsRag } =
+  const { modelProvider, setModelProvider, isRag, setIsRag, _hasHydrated } =
     useConversationSettings();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -235,20 +237,39 @@ export function PromptInput({
         {/* Center & Right: Model selector and Send button */}
         <div className="flex items-center gap-2">
           {/* Model Selector Button */}
-          <Select defaultValue={modelProvider} onValueChange={setModelProvider}>
-            <SelectTrigger>{modelProvider}</SelectTrigger>
-            <SelectContent position="popper">
-              <SelectGroup>
-                <SelectLabel>Google</SelectLabel>
-                <SelectItem value={"gemini-2.0-flash"}>
-                  gemini-2.0-flash
-                </SelectItem>
-                <SelectItem value={"gemini-2.5-flash"}>
-                  gemini-2.5-flash
-                </SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+          {!_hasHydrated ? (
+            <div />
+          ) : (
+            <Select
+              defaultValue={modelProvider}
+              onValueChange={setModelProvider}
+            >
+              <SelectTrigger>{modelProvider}</SelectTrigger>
+              <SelectContent position="popper" className="max-h-80">
+                <SelectGroup>
+                  <SelectLabel>Google</SelectLabel>
+                  {geminiModels.map((model) => {
+                    return (
+                      <SelectItem key={model} value={model}>
+                        {model}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectGroup>
+                <Separator />
+                <SelectGroup>
+                  <SelectLabel>Openai</SelectLabel>
+                  {openaiModels.map((model) => {
+                    return (
+                      <SelectItem key={model} value={model}>
+                        {model}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          )}
           {/* Send Button */}
           {isSending ? (
             <Button type="button" onClick={stop}>

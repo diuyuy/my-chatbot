@@ -22,8 +22,7 @@ export default function NewChatPage() {
     mutationFn: createNewConversation,
     onSuccess: (conversationId) => {
       setIsCreating(promptInput.value.trim(), promptInput.files);
-      promptInput.setValue("");
-      promptInput.setFiles([]);
+      promptInput.clearState();
       router.push(`${ROUTER_PATH.CONVERSATION}/${conversationId}`);
     },
     onError: (error) => {
