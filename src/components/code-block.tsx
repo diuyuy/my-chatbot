@@ -2,9 +2,13 @@
 
 import { Check, Copy } from "lucide-react";
 import mermaid from "mermaid";
+import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import {
+  vs,
+  vscDarkPlus,
+} from "react-syntax-highlighter/dist/esm/styles/prism";
 import { Button } from "./ui/button";
 
 interface CodeBlockProps {
@@ -24,13 +28,17 @@ export function CodeBlock({ language, children, inline }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
   const [mermaidSvg, setMermaidSvg] = useState<string>("");
   const mermaidRef = useRef<HTMLDivElement>(null);
+  const { resolvedTheme } = useTheme(); // 현재 테마 가져오기
+
+  // 테마에 따라 스타일 선택
+  const syntaxTheme = resolvedTheme === "dark" ? vscDarkPlus : vs;
 
   // Handle mermaid diagram rendering
   useEffect(() => {
     if (language === "mermaid" && children && !inline) {
       const renderMermaid = async () => {
         try {
-          const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+          const id = `mermaid-${Math.random().toString(36).substring(2, 9)}`;
           const { svg } = await mermaid.render(id, children);
           setMermaidSvg(svg);
         } catch (error) {
@@ -92,7 +100,7 @@ export function CodeBlock({ language, children, inline }: CodeBlockProps) {
       </div>
       <SyntaxHighlighter
         language={language || "text"}
-        style={vscDarkPlus}
+        style={syntaxTheme}
         customStyle={{
           margin: 0,
           borderTopLeftRadius: 0,

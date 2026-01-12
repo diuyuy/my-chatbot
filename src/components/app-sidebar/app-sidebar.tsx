@@ -1,15 +1,13 @@
 import { Suspense } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
-  SidebarMenuItem,
 } from "../ui/sidebar";
 import { Spinner } from "../ui/spinner";
 import AppSidebarFavoritesMenu from "./app-sidebar-favorite-menu";
+import AppSidebarFooter from "./app-sidebar-footer";
 import AppSidebarHeader from "./app-sidebar-header";
 import AppSidebarHistoryMenu from "./app-sidebar-history-menu";
 
@@ -38,20 +36,7 @@ export default function AppSidebar() {
           <AppSidebarHistoryMenu />
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
-        <SidebarMenuItem>
-          <div className="flex items-center gap-2 overflow-hidden">
-            <Avatar>
-              <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-              <AvatarFallback>CN</AvatarFallback>
-            </Avatar>
-            <div className="whitespace-nowrap">
-              <p className="text-sm">Nickname</p>
-              <p className="text-xs text-gray-500">{"example@example.com"}</p>
-            </div>
-          </div>
-        </SidebarMenuItem>
-      </SidebarFooter>
+      <AppSidebarFooter />
     </Sidebar>
   );
 }
