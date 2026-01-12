@@ -44,7 +44,6 @@ export const tavilySearch = async (
   query: string,
   signal?: AbortSignal
 ): Promise<SearchResponse> => {
-  console.log("tavilySearch Called");
   const requestUrl = new URL("https://api.tavily.com/search");
 
   const response = await fetch(requestUrl, {

@@ -43,7 +43,6 @@ export const handleSentMessage = async (
   if (isRag) {
     const msg = message.parts[0].type === "text" ? message.parts[0].text : "";
     context = await findRelevantContent(msg);
-    console.log("🚀 ~ handleSentMessage ~ context:", context);
   }
 
   return generateAIResponse(conversationId, message, modelProvider, context);
@@ -57,10 +56,6 @@ const generateAIResponse = async (
 ) => {
   try {
     const previousMessages = await loadPreviousMessages(conversationId);
-    console.log(
-      "🚀 ~ generateAIResponse ~ previousMessages:",
-      JSON.stringify(previousMessages, null, 2)
-    );
     const validatedMessages = await validateUIMessages<MyUIMessage>({
       messages: [...previousMessages, message],
       metadataSchema,
@@ -103,7 +98,6 @@ export const updateConversationTitle = async (
   shouldValidate?: boolean,
   userId?: string
 ) => {
-  console.log("sfsdf");
   if (shouldValidate && userId)
     await validateAccessability(userId, conversationId);
 
@@ -131,7 +125,6 @@ export const findAllConversations = async (
     const decodedString = Buffer.from(cursor, "base64").toString("utf-8");
     decodedCursor = new Date(decodedString);
   }
-  console.log("🚀 ~ findAllConversations ~ decodedCursor:", decodedCursor);
 
   const result = await db
     .select({

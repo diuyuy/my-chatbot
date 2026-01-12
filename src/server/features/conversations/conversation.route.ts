@@ -108,7 +108,6 @@ conversationRoute.post(
   async (c) => {
     const { message, modelProvider, conversationId, isRag } =
       c.req.valid("json");
-    console.log("🚀 ~ isRag:", isRag);
     const user = c.get("user");
 
     return handleSentMessage(

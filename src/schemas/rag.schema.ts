@@ -13,8 +13,6 @@ export const CreateEmbeddingSchema = z.object({
     .openapi({ example: "markdown" }),
 });
 
-export type CreateEmbeddingDto = z.infer<typeof CreateEmbeddingSchema>;
-
 export const ResourceSchema = z.object({
   id: z.string(),
   userId: z.string(),
@@ -46,4 +44,9 @@ export const ResourcePaginaitonSchema = SuccessReponseSchema.extend({
   data: createPaginationSchema(ResourceSchema),
 });
 
+export const ChunckParamsSchema = z.object({
+  chunkId: z.uuid(),
+});
+
+export type CreateEmbeddingDto = z.infer<typeof CreateEmbeddingSchema>;
 export type ResourcePagination = z.infer<typeof ResourcePaginaitonSchema>;

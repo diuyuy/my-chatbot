@@ -69,3 +69,22 @@ export const deleteResourceById = async (
 
   return response.json();
 };
+
+export const deleteChunkById = async (
+  chunkId: string
+): Promise<SuccessResponse<null>> => {
+  const response = await fetch(`/api/rags/chunks/${chunkId}`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const errorData: ErrorResponse = await response.json();
+    throw new Error(errorData.message);
+  }
+
+  return response.json();
+};

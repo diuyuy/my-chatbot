@@ -82,7 +82,6 @@ export const findRelevantContent = async (content: string) => {
     .from(documentChunks)
     .where(lte(similarity, -0.5))
     .orderBy(similarity);
-  console.log("🚀 ~ findRelevantContent ~ result:", result);
 
   return result.map(({ content }) => content).join("\n");
 };

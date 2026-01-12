@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/select";
 import { Trash2Icon, TrashIcon } from "lucide-react";
 import { useState } from "react";
+import { useDeleteChunkMutation } from "../../hooks/use-delete-chunk-mutation";
+import { useDeleteResourceMutation } from "../../hooks/use-delete-resource-mutation";
 
 type Embedding = {
   id: string;
@@ -59,6 +61,9 @@ export function EmbeddingsList({
     name: string;
   } | null>(null);
 
+  const deleteResourceMutation = useDeleteResourceMutation();
+  const deleteChunkMutation = useDeleteChunkMutation();
+
   const sortedEmbeddings = [...embeddings].sort((a, b) => {
     let comparison = 0;
 
@@ -83,10 +88,19 @@ export function EmbeddingsList({
   const confirmDelete = () => {
     if (!deleteTarget) return;
 
-    // TODO: Implement server-side deletion logic
-    console.log(`Deleting ${deleteTarget.type}:`, deleteTarget.id);
-
-    setDeleteTarget(null);
+    if (deleteTarget.type === "resource") {
+      deleteResourceMutation.mutate(deleteTarget.id, {
+        onSuccess: () => {
+          setDeleteTarget(null);
+        },
+      });
+    } else {
+      deleteChunkMutation.mutate(deleteTarget.id, {
+        onSuccess: () => {
+          setDeleteTarget(null);
+        },
+      });
+    }
   };
 
   return (
