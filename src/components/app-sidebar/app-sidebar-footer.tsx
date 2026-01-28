@@ -1,6 +1,7 @@
 "use client";
 
 import { authClient } from "@/lib/auth-client";
+import { cn } from "@/lib/utils";
 import { LogOut, Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
@@ -15,10 +16,11 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import { SidebarFooter } from "../ui/sidebar";
+import { SidebarFooter, useSidebar } from "../ui/sidebar";
 
 export default function AppSidebarFooter() {
   const { setTheme, theme } = useTheme();
+  const { open } = useSidebar();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -30,16 +32,21 @@ export default function AppSidebarFooter() {
     <SidebarFooter>
       <DropdownMenu>
         <div>
-          <DropdownMenuTrigger className="w-full focus-visible:outline-none rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:font-medium hover:cursor-pointer data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground">
-            <div className="p-2 flex items-center gap-2 overflow-hidden">
-              <Avatar>
+          <DropdownMenuTrigger className="w-full focus-visible:outline-none rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:font-medium hover:cursor-pointer">
+            <div
+              className={cn(
+                "flex items-center overflow-hidden transition-all duration-200 ease-in-out",
+                open ? "p-1 gap-2" : "p-0",
+              )}
+            >
+              <Avatar className="size-7">
                 <AvatarImage
                   src="https://github.com/shadcn.png"
                   alt="@shadcn"
                 />
                 <AvatarFallback>CN</AvatarFallback>
               </Avatar>
-              <div className="whitespace-nowrap">
+              <div className="whitespace-nowrap group-data-[collapsible=icon]:hidden">
                 <p className="text-sm text-start">Nickname</p>
                 <p className="text-xs text-start text-gray-500">
                   {"example@example.com"}
