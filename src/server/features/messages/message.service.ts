@@ -3,7 +3,7 @@ import { db } from "@/db/db";
 import { conversations, messages } from "@/db/schema/schema";
 import { DeleteMessagesDto } from "@/schemas/message.schema";
 import { CommonHttpException } from "@/server/common/errors/common-http-exception";
-import { createCursor } from "@/server/common/utils/create-cursor";
+import { createCursor } from "@/server/common/utils/cursor-utils";
 import { createPaginationResponse } from "@/server/common/utils/response-utils";
 import { PaginationOption } from "@/types/types";
 import { and, count, desc, eq, lte, or } from "drizzle-orm/sql";
@@ -11,7 +11,7 @@ import { MyUIMessage } from "../ai/ai.schemas";
 
 export const createMessage = async (
   conversationId: string,
-  createMessageDto: MyUIMessage
+  createMessageDto: MyUIMessage,
 ) => {
   const [newMessage] = await db
     .insert(messages)
@@ -26,7 +26,7 @@ export const createMessage = async (
 
 export const insertMessages = async (
   conversationId: string,
-  uiMessages: MyUIMessage[]
+  uiMessages: MyUIMessage[],
 ) => {
   const msgs = uiMessages.map((message) => ({ conversationId, ...message }));
 
@@ -35,7 +35,7 @@ export const insertMessages = async (
 
 export const findAllMessages = async (
   conversationId: string,
-  { cursor, limit }: PaginationOption
+  { cursor, limit }: PaginationOption,
 ) => {
   let decodedCursor: Date | null;
 
@@ -52,8 +52,8 @@ export const findAllMessages = async (
     .where(
       and(
         eq(messages.conversationId, conversationId),
-        decodedCursor ? lte(messages.createdAt, decodedCursor) : undefined
-      )
+        decodedCursor ? lte(messages.createdAt, decodedCursor) : undefined,
+      ),
     )
     .orderBy(desc(messages.createdAt))
     .limit(limit + 1);
@@ -95,7 +95,7 @@ export const findAllMessages = async (
       nextCursor,
       totalElements,
       hasNext: !!nextCursor,
-    }
+    },
   );
 };
 
@@ -118,7 +118,7 @@ export const loadPreviousMessages = async (conversationId: string) => {
 
 export const deleteMessageById = async (
   userId: string,
-  { userMessageId, aiMessageId }: DeleteMessagesDto
+  { userMessageId, aiMessageId }: DeleteMessagesDto,
 ) => {
   await validateUser(userId, userMessageId);
   await validateUser(userId, aiMessageId);

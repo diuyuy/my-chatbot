@@ -6,6 +6,7 @@ export type Env = {
   Variables: {
     user: User;
     session: Session;
+    db: DBType;
   };
 };
 
