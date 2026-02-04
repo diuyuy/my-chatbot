@@ -65,13 +65,14 @@ RAG(Retrieval Augmented Generation) 기반의 지능형 챗봇 웹 애플리케�
 ### 4. RAG (Retrieval Augmented Generation)
 
 - **문서 업로드 및 처리**: 프로그래밍 언어 및 Markdown 등 다양한 형식의 문서 지원
+- **PDF 파일 처리**: Mozilla의 PDF.js 라이브러리를 활용한 텍스트 추출 및 파싱
 - **벡터 임베딩**: OpenAI embedding 모델을 활용한 문서 벡터화
 - **고속 유사도 검색**: pgvector의 HNSW 인덱스 활용
 - **컨텍스트 기반 답변**: 업로드된 문서를 참조한 정확한 답변 생성
 
 ### 5. 웹 검색 통합
 
-- 실시간 정보 검색: Tavily API를 통한 최신 정보 제공
+- **실시간 정보 검색**: Tavily API를 통한 최신 정보 제공
 
 ## 설치 및 실행
 
@@ -80,6 +81,8 @@ RAG(Retrieval Augmented Generation) 기반의 지능형 챗봇 웹 애플리케�
 ```bash
 git clone https://github.com/diuyuy/my-agent.git
 
+cd my-chatbot
+
 pnpm install
 ```
 
@@ -87,9 +90,13 @@ pnpm install
 
 ```bash
 cp .env.example .env
+
+# .env 파일을 열어 필요한 API 키와 데이터베이스 URL을 설정하세요
 ```
 
 ### 3. Database 마이그레이션
+
+> **NOTE**: PostgreSQL을 실행하고 나서 먼저 pgvector 확장을 설치해야 합니다: `CREATE EXTENSION IF NOT EXISTS vector;`
 
 ```bash
 npx drizzle-kit migrate
@@ -100,3 +107,5 @@ npx drizzle-kit migrate
 ```bash
 pnpm dev
 ```
+
+브라우저에서 http://localhost:3000 접속
