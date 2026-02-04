@@ -52,18 +52,17 @@ RAG(Retrieval Augmented Generation) 기반의 지능형 챗봇 웹 애플리케�
 
 ### 2. 사용자 인증 및 보안
 
-- Better-Auth 기반 인증: 안전한 세션 관리
-- 소셜 로그인: Google, GitHub OAuth 연동
-- 사용자별 데이터 격리: 개인 대화 및 문서 관리
+- **Better-Auth 기반 인증**: 안전한 세션 관리
+- **소셜 로그인**: Google, GitHub OAuth 연동
 
 ### 3. 대화 관리
 
-- CRUD 기능: 대화 생성, 조회, 수정, 삭제
-- 즐겨찾기: 중요한 대화를 즐겨찾기로 저장
-- 커서 기반 페이지네이션: 효율적인 대화 기록 로딩
-- 대화 검색: 과거 대화 내용 빠르게 찾기
+- **CRUD 기능**: 대화 생성, 조회, 수정, 삭제
+- **즐겨찾기**: 중요한 대화를 즐겨찾기로 저장
+- **커서 기반 페이지네이션**: 효율적인 대화 기록 로딩
+- **대화 검색**: 과거 대화 내용 빠르게 찾기
 
-4. RAG (Retrieval Augmented Generation)
+### 4. RAG (Retrieval Augmented Generation)
 
 - **문서 업로드 및 처리**: 프로그래밍 언어 및 Markdown 등 다양한 형식의 문서 지원
 - **벡터 임베딩**: OpenAI embedding 모델을 활용한 문서 벡터화
