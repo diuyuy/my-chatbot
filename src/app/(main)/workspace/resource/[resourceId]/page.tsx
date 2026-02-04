@@ -1,6 +1,8 @@
+import { CACHE_TAG } from "@/constants/cache-tag";
 import { ROUTER_PATH } from "@/constants/router-path";
 import { auth } from "@/lib/auth";
 import { findResourceById } from "@/server/features/rags/rag.service";
+import { cacheTag } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { EmbeddingsList } from "./components/embeddings-list";
@@ -19,7 +21,14 @@ export default async function ResourcePage({ params }: Props) {
     redirect(ROUTER_PATH.LOGIN);
   }
 
-  const resource = await findResourceById(session.user.id, resourceId);
+  const findResources = async () => {
+    "use cache";
+    cacheTag(CACHE_TAG.RESOURCES);
+
+    return findResourceById(session.user.id, resourceId);
+  };
+
+  const resource = await findResources();
 
   return (
     <div className="container mx-auto px-4 py-8">

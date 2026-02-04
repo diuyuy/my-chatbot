@@ -21,16 +21,18 @@ import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { zValidator } from "@hono/zod-validator";
 import { MyUIMessage } from "../ai/ai.schemas";
 import {
-  addFavoriteConversation,
   createConversation,
-  deleteFavoriteConversation,
   findAllConversations,
-  findFavorites,
   getMessagesInConversation,
   handleSentMessage,
   removeConversation,
   updateConversationTitle,
 } from "./conversation.service";
+import {
+  addFavoriteConversation,
+  deleteFavoriteConversation,
+  findFavorites,
+} from "./favorite-conversation.service";
 
 const conversationRoute = new OpenAPIHono<Env>();
 
@@ -108,7 +110,6 @@ conversationRoute.post(
   async (c) => {
     const { message, modelProvider, conversationId, isRag } =
       c.req.valid("json");
-    console.log("🚀 ~ isRag:", isRag);
     const user = c.get("user");
 
     return handleSentMessage(
@@ -116,9 +117,9 @@ conversationRoute.post(
       message as MyUIMessage,
       modelProvider,
       conversationId,
-      isRag ?? false
+      isRag ?? false,
     );
-  }
+  },
 );
 
 const createConversationRoute = createRoute({
@@ -160,7 +161,7 @@ conversationRoute.openapi(createConversationRoute, async (c) => {
   return c.json(
     createSuccessResponse(RESPONSE_STATUS.OK, {
       conversationId: newConversationId,
-    })
+    }),
   );
 });
 
@@ -198,7 +199,7 @@ conversationRoute.openapi(
 
     return c.json(createSuccessResponse(RESPONSE_STATUS.OK, result), 200);
   },
-  zodValidationHook
+  zodValidationHook,
 );
 
 // Update Conversation title
@@ -253,7 +254,7 @@ const findFavoritesRoute = createRoute({
             data: z.array(
               ConversationSchema.extend({
                 isFavorite: z.boolean().openapi({ example: true }),
-              })
+              }),
             ),
           }),
         },
@@ -362,7 +363,7 @@ conversationRoute.openAPIRegistry.registerPath({
     },
     400: createErrorResponseSignature(RESPONSE_STATUS.INVALID_REQUEST_FORMAT),
     403: createErrorResponseSignature(
-      RESPONSE_STATUS.ACCESS_CONVERSATION_DENIED
+      RESPONSE_STATUS.ACCESS_CONVERSATION_DENIED,
     ),
     404: createErrorResponseSignature(RESPONSE_STATUS.CONVERSATION_NOT_FOUND),
     500: createErrorResponseSignature(RESPONSE_STATUS.INTERNAL_SERVER_ERROR),
@@ -385,7 +386,7 @@ conversationRoute.get(
     });
 
     return c.json(createSuccessResponse(RESPONSE_STATUS.OK, messages), 200);
-  }
+  },
 );
 
 export default conversationRoute;

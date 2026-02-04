@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/select";
 import { Trash2Icon, TrashIcon } from "lucide-react";
 import { useState } from "react";
+import { useDeleteChunkMutation } from "../../hooks/use-delete-chunk-mutation";
+import { useDeleteResourceMutation } from "../../hooks/use-delete-resource-mutation";
 
 type Embedding = {
   id: string;
@@ -51,13 +53,16 @@ export function EmbeddingsList({
   const [sortBy, setSortBy] = useState<SortBy>("createdAt");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [selectedEmbedding, setSelectedEmbedding] = useState<Embedding | null>(
-    null
+    null,
   );
   const [deleteTarget, setDeleteTarget] = useState<{
     type: "resource" | "embedding";
     id: string;
     name: string;
   } | null>(null);
+
+  const deleteResourceMutation = useDeleteResourceMutation();
+  const deleteChunkMutation = useDeleteChunkMutation();
 
   const sortedEmbeddings = [...embeddings].sort((a, b) => {
     let comparison = 0;
@@ -75,7 +80,7 @@ export function EmbeddingsList({
   const handleDelete = (
     type: "resource" | "embedding",
     id: string,
-    name: string
+    name: string,
   ) => {
     setDeleteTarget({ type, id, name });
   };
@@ -83,10 +88,19 @@ export function EmbeddingsList({
   const confirmDelete = () => {
     if (!deleteTarget) return;
 
-    // TODO: Implement server-side deletion logic
-    console.log(`Deleting ${deleteTarget.type}:`, deleteTarget.id);
-
-    setDeleteTarget(null);
+    if (deleteTarget.type === "resource") {
+      deleteResourceMutation.mutate(deleteTarget.id, {
+        onSuccess: () => {
+          setDeleteTarget(null);
+        },
+      });
+    } else {
+      deleteChunkMutation.mutate(deleteTarget.id, {
+        onSuccess: () => {
+          setDeleteTarget(null);
+        },
+      });
+    }
   };
 
   return (
@@ -148,7 +162,7 @@ export function EmbeddingsList({
                   handleDelete(
                     "embedding",
                     embedding.id,
-                    embedding.content.substring(0, 30) + "..."
+                    embedding.content.substring(0, 30) + "...",
                   );
                 }}
               >
@@ -209,7 +223,7 @@ function EmbeddingDetailsDialog({
           </div>
           <div>
             <h3 className="mb-2 text-sm font-medium">내용</h3>
-            <p className="max-w-full wrap-break-word whitespace-pre-wrap text-sm border border-muted p-2 max-h-72 overflow-y-auto rounded-md">
+            <p className="max-w-md wrap-break-word whitespace-pre-wrap text-sm border border-muted p-2 max-h-72 overflow-y-auto rounded-md">
               {embedding?.content}
             </p>
           </div>

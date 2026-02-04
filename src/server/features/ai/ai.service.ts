@@ -22,12 +22,10 @@ import { toolSet } from "./too-set";
 
 const getModel = (modelProvider: string) => {
   if (geminiModels.includes(modelProvider)) {
-    console.log("gemini called");
     return google(modelProvider);
   }
 
   if (openaiModels.includes(modelProvider)) {
-    console.log("openai called");
     return openai(modelProvider);
   }
 
@@ -56,16 +54,6 @@ export const generateUIMessageStreamResponse = async ({
     experimental_transform: smoothStream(),
     tools: toolSet,
     stopWhen: stepCountIs(5),
-    onStepFinish: ({ toolCalls, toolResults }) => {
-      console.log(
-        "🚀 ~ generateUIMessageStreamResponse ~ toolCalls:",
-        toolCalls
-      );
-      console.log(
-        "🚀 ~ generateUIMessageStreamResponse ~ toolResults:",
-        toolResults
-      );
-    },
   }).toUIMessageStreamResponse({
     originalMessages: messages,
     generateMessageId: myIdGenerator,

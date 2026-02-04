@@ -5,6 +5,7 @@ import { documentChunks, documentResources } from "@/db/schema/schema";
 import { CreateEmbeddingDto } from "@/schemas/rag.schema";
 import { CommonHttpException } from "@/server/common/errors/common-http-exception";
 import { DBType } from "@/server/common/types/types";
+import { createCursor, parseCursor } from "@/server/common/utils/cursor-utils";
 import { createPaginationResponse } from "@/server/common/utils/response-utils";
 import { PaginationOption } from "@/types/types";
 import { sql } from "drizzle-orm";
@@ -19,13 +20,12 @@ import {
   lte,
 } from "drizzle-orm/sql";
 import path from "path";
-import { createCursor } from "../../common/utils/create-cursor";
 import { generateEmbedding, generateEmbeddings } from "../ai/ai.service";
 
 export const createEmbedding = async (
   db: DBType,
   userId: string,
-  { content, resourceName, docsLanguage }: CreateEmbeddingDto
+  { content, resourceName, docsLanguage }: CreateEmbeddingDto,
 ) => {
   const fileType = resourceName
     ? (path.extname(resourceName).slice(1) as ResouceType)
@@ -37,7 +37,7 @@ export const createEmbedding = async (
       tx,
       userId,
       resourceName ?? `${content.substring(0, 25)}...`,
-      fileType
+      fileType,
     );
 
     await tx.insert(documentChunks).values(
@@ -45,7 +45,7 @@ export const createEmbedding = async (
         userId,
         resourceId,
         ...chunk,
-      }))
+      })),
     );
   });
 };
@@ -54,7 +54,7 @@ const createResouce = async (
   db: DBType,
   userId: string,
   resourceName: string,
-  fileType: ResouceType
+  fileType: ResouceType,
 ) => {
   const [newResouce] = await db
     .insert(documentResources)
@@ -68,7 +68,7 @@ export const findRelevantContent = async (content: string) => {
   const useQueryEmbedded = await generateEmbedding(content);
   const similarity = sql<number>`${innerProduct(
     documentChunks.embedding,
-    useQueryEmbedded
+    useQueryEmbedded,
   )}`;
 
   const result = await db
@@ -76,27 +76,21 @@ export const findRelevantContent = async (content: string) => {
       content: documentChunks.content,
       similarity: sql<number>`${innerProduct(
         documentChunks.embedding,
-        useQueryEmbedded
+        useQueryEmbedded,
       )}`,
     })
     .from(documentChunks)
     .where(lte(similarity, -0.5))
     .orderBy(similarity);
-  console.log("🚀 ~ findRelevantContent ~ result:", result);
 
   return result.map(({ content }) => content).join("\n");
 };
 
 export const findResources = async (
   userId: string,
-  { cursor, limit, direction }: PaginationOption
+  { cursor, limit, direction }: PaginationOption,
 ) => {
-  let decodedCursor: Date | undefined;
-
-  if (cursor) {
-    const decoded = Buffer.from(cursor, "base64").toString();
-    decodedCursor = new Date(decoded);
-  }
+  const decodedCursor = cursor ? parseCursor(cursor, "date") : null;
 
   const result = await db
     .select()
@@ -106,13 +100,13 @@ export const findResources = async (
         eq(documentResources.userId, userId),
         decodedCursor
           ? gte(documentResources.createdAt, decodedCursor)
-          : undefined
-      )
+          : undefined,
+      ),
     )
     .orderBy(
       direction === "asc"
         ? asc(documentResources.createdAt)
-        : desc(documentResources.createdAt)
+        : desc(documentResources.createdAt),
     )
     .limit(limit + 1);
 
@@ -148,7 +142,7 @@ export const findResourceById = async (userId: string, resourceId: string) => {
     .from(documentResources)
     .innerJoin(
       documentChunks,
-      eq(documentResources.id, documentChunks.resourceId)
+      eq(documentResources.id, documentChunks.resourceId),
     )
     .where(eq(documentResources.id, resourceId));
 
@@ -160,7 +154,7 @@ export const findResourceById = async (userId: string, resourceId: string) => {
 
 export const deleteResourceById = async (
   userId: string,
-  resourceId: string
+  resourceId: string,
 ) => {
   await validateAccessability(userId, resourceId);
 
@@ -198,7 +192,7 @@ const validateChunkAccessability = async (userId: string, chunckId: string) => {
     .from(documentChunks)
     .innerJoin(
       documentResources,
-      eq(documentChunks.resourceId, documentResources.id)
+      eq(documentChunks.resourceId, documentResources.id),
     )
     .where(eq(documentChunks.id, chunckId));
 

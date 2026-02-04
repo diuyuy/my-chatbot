@@ -2,7 +2,7 @@ import { RESPONSE_STATUS } from "@/constants/response-status";
 import { db } from "@/db/db";
 import { conversations, favoriteConversations } from "@/db/schema/schema";
 import { CommonHttpException } from "@/server/common/errors/common-http-exception";
-import { createCursor } from "@/server/common/utils/create-cursor";
+import { createCursor, parseCursor } from "@/server/common/utils/cursor-utils";
 import { createPaginationResponse } from "@/server/common/utils/response-utils";
 import { PaginationOption } from "@/types/types";
 import { TypeValidationError, validateUIMessages } from "ai";
@@ -12,10 +12,10 @@ import {
   count,
   desc,
   eq,
-  gte,
+  gt,
   ilike,
   isNull,
-  lte,
+  lt,
 } from "drizzle-orm/sql";
 import { metadataSchema, MyUIMessage } from "../ai/ai.schemas";
 import {
@@ -28,13 +28,14 @@ import {
   loadPreviousMessages,
 } from "../messages/message.service";
 import { findRelevantContent } from "../rags/rag.service";
+import { validateAccessability } from "./guards/validate-accessability";
 
 export const handleSentMessage = async (
   userId: string,
   message: MyUIMessage,
   modelProvider: string,
   conversationId: string,
-  isRag: boolean
+  isRag: boolean,
 ) => {
   await validateAccessability(userId, conversationId);
 
@@ -43,24 +44,10 @@ export const handleSentMessage = async (
   if (isRag) {
     const msg = message.parts[0].type === "text" ? message.parts[0].text : "";
     context = await findRelevantContent(msg);
-    console.log("🚀 ~ handleSentMessage ~ context:", context);
   }
 
-  return generateAIResponse(conversationId, message, modelProvider, context);
-};
-
-const generateAIResponse = async (
-  conversationId: string,
-  message: MyUIMessage,
-  modelProvider: string,
-  context?: string
-) => {
   try {
     const previousMessages = await loadPreviousMessages(conversationId);
-    console.log(
-      "🚀 ~ generateAIResponse ~ previousMessages:",
-      JSON.stringify(previousMessages, null, 2)
-    );
     const validatedMessages = await validateUIMessages<MyUIMessage>({
       messages: [...previousMessages, message],
       metadataSchema,
@@ -101,9 +88,8 @@ export const updateConversationTitle = async (
   conversationId: string,
   title: string,
   shouldValidate?: boolean,
-  userId?: string
+  userId?: string,
 ) => {
-  console.log("sfsdf");
   if (shouldValidate && userId)
     await validateAccessability(userId, conversationId);
 
@@ -121,17 +107,15 @@ export const findAllConversations = async (
     direction,
     includeFavorite,
     filter,
-  }: PaginationOption & { includeFavorite?: boolean; filter?: string }
+  }: PaginationOption & { includeFavorite?: boolean; filter?: string },
 ) => {
-  let decodedCursor: Date | null;
+  const decodedCursor = cursor ? parseCursor(cursor, "date") : null;
 
-  if (!cursor) {
-    decodedCursor = null;
-  } else {
-    const decodedString = Buffer.from(cursor, "base64").toString("utf-8");
-    decodedCursor = new Date(decodedString);
-  }
-  console.log("🚀 ~ findAllConversations ~ decodedCursor:", decodedCursor);
+  const whereCondition = and(
+    eq(conversations.userId, userId),
+    !includeFavorite ? isNull(favoriteConversations.id) : undefined,
+    filter ? ilike(conversations.title, `%${filter}%`) : undefined,
+  );
 
   const result = await db
     .select({
@@ -144,61 +128,62 @@ export const findAllConversations = async (
     .from(conversations)
     .leftJoin(
       favoriteConversations,
-      eq(conversations.id, favoriteConversations.conversationId)
+      eq(conversations.id, favoriteConversations.conversationId),
     )
     .where(
       and(
-        eq(conversations.userId, userId),
+        whereCondition,
         decodedCursor
           ? direction === "desc"
-            ? lte(conversations.updatedAt, decodedCursor)
-            : gte(conversations.updatedAt, decodedCursor)
+            ? lt(conversations.updatedAt, decodedCursor)
+            : gt(conversations.updatedAt, decodedCursor)
           : undefined,
-        !includeFavorite ? isNull(favoriteConversations.id) : undefined,
-        filter ? ilike(conversations.title, `%${filter}%`) : undefined
-      )
+      ),
     )
     .orderBy(
       direction === "desc"
         ? desc(conversations.updatedAt)
-        : asc(conversations.updatedAt)
+        : asc(conversations.updatedAt),
     )
     .limit(limit + 1);
 
-  const nextValue = result.length > limit ? result.pop()?.updatedAt : null;
-  const nextCursor = nextValue ? createCursor(nextValue.toISOString()) : null;
-
-  const [{ count: totalElements }] = await db
-    .select({ count: count() })
+  const [counts] = await db
+    .select({
+      count: count(),
+    })
     .from(conversations)
     .leftJoin(
       favoriteConversations,
-      eq(conversations.id, favoriteConversations.conversationId)
+      eq(conversations.id, favoriteConversations.conversationId),
     )
-    .where(
-      and(
-        eq(conversations.userId, userId),
-        !includeFavorite ? isNull(favoriteConversations.id) : undefined,
-        filter ? ilike(conversations.title, filter) : undefined
-      )
-    );
+    .where(whereCondition);
 
-  return createPaginationResponse(
-    result.map(({ favoriteId, ...rest }) => ({
-      ...rest,
-      isFavorite: !!favoriteId,
-    })),
-    {
-      nextCursor,
-      totalElements,
-      hasNext: !!nextCursor,
-    }
-  );
+  const totalElements = counts ? counts.count : 0;
+
+  let lastValue: Date | undefined;
+
+  if (result.length > limit) {
+    result.pop();
+    lastValue = result.at(-1)?.updatedAt;
+  }
+
+  const nextCursor = lastValue ? createCursor(lastValue) : null;
+
+  const items = result.map(({ favoriteId, ...conversation }) => ({
+    ...conversation,
+    isFavorite: !!favoriteId,
+  }));
+
+  return createPaginationResponse(items, {
+    nextCursor,
+    totalElements,
+    hasNext: !!nextCursor,
+  });
 };
 
 export const findConversationById = async (
   userId: string,
-  conversationId: string
+  conversationId: string,
 ) => {
   await validateAccessability(userId, conversationId);
 
@@ -213,73 +198,16 @@ export const findConversationById = async (
 export const getMessagesInConversation = async (
   userId: string,
   conversationId: string,
-  paginationOption: PaginationOption
+  paginationOption: PaginationOption,
 ) => {
   await validateAccessability(userId, conversationId);
 
   return findAllMessages(conversationId, paginationOption);
 };
 
-export const findFavorites = async (userId: string) => {
-  const result = await db
-    .select({
-      id: conversations.id,
-      title: conversations.title,
-      createdAt: conversations.createdAt,
-      updatedAt: conversations.updatedAt,
-      favoriteId: favoriteConversations.id,
-    })
-    .from(conversations)
-    .innerJoin(
-      favoriteConversations,
-      eq(conversations.id, favoriteConversations.conversationId)
-    )
-    .where(eq(conversations.userId, userId))
-    .orderBy(desc(favoriteConversations.createdAt));
-
-  return result.map(({ id, title, createdAt, updatedAt }) => ({
-    id,
-    title,
-    createdAt,
-    updatedAt,
-    isFavorite: true,
-  }));
-};
-
-export const addFavoriteConversation = async (
-  userId: string,
-  conversationId: string
-) => {
-  await validateAccessability(userId, conversationId);
-
-  await db
-    .insert(favoriteConversations)
-    .values({ userId, conversationId })
-    .onConflictDoNothing({
-      target: [
-        favoriteConversations.userId,
-        favoriteConversations.conversationId,
-      ],
-    });
-};
-
-export const deleteFavoriteConversation = async (
-  userId: string,
-  conversationId: string
-) => {
-  await db
-    .delete(favoriteConversations)
-    .where(
-      and(
-        eq(favoriteConversations.userId, userId),
-        eq(favoriteConversations.conversationId, conversationId)
-      )
-    );
-};
-
 export const removeConversation = async (
   userId: string,
-  conversationId: string
+  conversationId: string,
 ) => {
   // 권한 체크
   await validateAccessability(userId, conversationId);
@@ -289,20 +217,4 @@ export const removeConversation = async (
   return {
     conversationId,
   };
-};
-
-export const validateAccessability = async (
-  userId: string,
-  conversationId: string
-) => {
-  const [conversation] = await db
-    .select({ userId: conversations.userId })
-    .from(conversations)
-    .where(eq(conversations.id, conversationId));
-
-  if (!conversation)
-    throw new CommonHttpException(RESPONSE_STATUS.CONVERSATION_NOT_FOUND);
-
-  if (conversation.userId !== userId)
-    throw new CommonHttpException(RESPONSE_STATUS.ACCESS_CONVERSATION_DENIED);
 };

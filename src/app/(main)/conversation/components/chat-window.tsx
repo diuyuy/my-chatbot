@@ -84,7 +84,6 @@ export default function ChatWindow({ conversationId, initialMessages }: Props) {
     const msg = consumeMessage();
     const files = consumeFiles();
     if (msg) {
-      console.log("🚀 ~ ChatWindow ~ files:", files);
       sendMessage(
         {
           text: msg,

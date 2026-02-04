@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef } from "react";
 
-interface PromptInputProps {
+type PromptInputProps = {
   value: string;
   setValue: (value: string) => void;
   files: File[];
@@ -44,7 +44,7 @@ interface PromptInputProps {
   placeholder?: string;
   disabled?: boolean;
   maxHeight?: number;
-}
+};
 
 export function PromptInput({
   value,

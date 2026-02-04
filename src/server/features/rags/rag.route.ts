@@ -1,7 +1,9 @@
+import { CACHE_TAG } from "@/constants/cache-tag";
 import { RESPONSE_STATUS } from "@/constants/response-status";
 import { db } from "@/db/db";
 import { SuccessReponseSchema } from "@/schemas/common.schemas";
 import {
+  ChunckParamsSchema,
   CreateEmbeddingSchema,
   DocumentChunckSchema,
   PaginationQuerySchema,
@@ -15,8 +17,10 @@ import {
   createSuccessResponse,
 } from "@/server/common/utils/response-utils";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
+import { revalidateTag } from "next/cache";
 import {
   createEmbedding,
+  deleteChunkById,
   deleteResourceById,
   findRelevantContent,
   findResourceById,
@@ -184,6 +188,37 @@ ragRoute.openapi(deleteResourceRoute, async (c) => {
   const { resourceId } = c.req.valid("param");
 
   await deleteResourceById(user.id, resourceId);
+
+  return c.json(createSuccessResponse(RESPONSE_STATUS.OK, null), 200);
+});
+
+const deleteChunkRoute = createRoute({
+  method: "delete",
+  path: "/chunks/:chunkId",
+  request: {
+    params: ChunckParamsSchema,
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: SuccessReponseSchema.extend({
+            data: z.null(),
+          }),
+        },
+      },
+      description: "요청 성공 응답",
+    },
+  },
+});
+
+ragRoute.openapi(deleteChunkRoute, async (c) => {
+  const { chunkId } = c.req.valid("param");
+  const user = c.get("user");
+
+  await deleteChunkById(user.id, chunkId);
+
+  revalidateTag(CACHE_TAG.RESOURCES, { expire: 0 });
 
   return c.json(createSuccessResponse(RESPONSE_STATUS.OK, null), 200);
 });
