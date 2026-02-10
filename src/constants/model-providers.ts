@@ -40,3 +40,9 @@ export const openaiModels = [
   "o3-mini",
   "o3",
 ];
+
+export const antrophicModels = [
+  "claude-haiku-4-5",
+  "claude-sonnet-4-5",
+  "claude-opus-4-5",
+];

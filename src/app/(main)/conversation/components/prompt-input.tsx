@@ -18,7 +18,11 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { geminiModels, openaiModels } from "@/constants/model-providers";
+import {
+  antrophicModels,
+  geminiModels,
+  openaiModels,
+} from "@/constants/model-providers";
 import { useConversationSettings } from "@/hooks/use-conversation-settings";
 import {
   FileSearchIcon,
@@ -260,6 +264,17 @@ export function PromptInput({
                 <SelectGroup>
                   <SelectLabel>Openai</SelectLabel>
                   {openaiModels.map((model) => {
+                    return (
+                      <SelectItem key={model} value={model}>
+                        {model}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectGroup>
+                <Separator />
+                <SelectGroup>
+                  <SelectLabel>Antrophic</SelectLabel>
+                  {antrophicModels.map((model) => {
                     return (
                       <SelectItem key={model} value={model}>
                         {model}
