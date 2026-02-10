@@ -6,7 +6,11 @@ import { CreateEmbeddingDto } from "@/schemas/rag.schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-export function useCreateEmbeddingMutation() {
+type Props = {
+  setText: (value: string) => void;
+};
+
+export function useCreateEmbeddingMutation({ setText }: Props) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -16,6 +20,7 @@ export function useCreateEmbeddingMutation() {
       queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.getRagQueryKeys(),
       });
+      setText("");
       toast.success("임베딩이 성공적으로 생성되었습니다.");
     },
     onError: (error: Error) => {
