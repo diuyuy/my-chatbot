@@ -18,7 +18,7 @@ export const findFavorites = async (userId: string) => {
       eq(conversations.id, favoriteConversations.conversationId),
     )
     .where(eq(conversations.userId, userId))
-    .orderBy(desc(favoriteConversations.createdAt));
+    .orderBy(desc(conversations.updatedAt));
 
   return result.map(({ id, title, createdAt, updatedAt }) => ({
     id,

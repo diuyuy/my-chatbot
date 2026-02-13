@@ -67,13 +67,15 @@ export function FileUploadSection() {
       queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.getRagQueryKeys(),
       });
+
+      setFile(null);
+
       toast.success(`${file.name} 텍스트 추출 완료`);
     } catch (error) {
-      console.error("File processing error:", error);
       toast.error(
         error instanceof Error
           ? error.message
-          : "파일 처리 중 오류가 발생했습니다."
+          : "파일 처리 중 오류가 발생했습니다.",
       );
     } finally {
       setIsExtracting(false);

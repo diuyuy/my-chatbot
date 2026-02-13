@@ -1,7 +1,12 @@
-import { geminiModels, openaiModels } from "@/constants/model-providers";
+import {
+  antrophicModels,
+  geminiModels,
+  openaiModels,
+} from "@/constants/model-providers";
 import { RESPONSE_STATUS } from "@/constants/response-status";
 import { CommonHttpException } from "@/server/common/errors/common-http-exception";
 import { DocsLanguage } from "@/types/types";
+import { anthropic } from "@ai-sdk/anthropic";
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
@@ -27,6 +32,10 @@ const getModel = (modelProvider: string) => {
 
   if (openaiModels.includes(modelProvider)) {
     return openai(modelProvider);
+  }
+
+  if (antrophicModels.includes(modelProvider)) {
+    return anthropic(modelProvider);
   }
 
   throw new CommonHttpException(RESPONSE_STATUS.INVALID_REQUEST_FORMAT);
@@ -88,7 +97,7 @@ const myIdGenerator = createIdGenerator({
 
 export const generateEmbeddings = async (
   value: string,
-  docsLanguage?: DocsLanguage
+  docsLanguage?: DocsLanguage,
 ) => {
   const chunks = await generateChunks(value, docsLanguage);
 

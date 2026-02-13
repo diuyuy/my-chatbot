@@ -20,7 +20,7 @@ export function TextInputSection() {
   const [text, setText] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState<string>("none");
 
-  const createEmbeddingMutation = useCreateEmbeddingMutation();
+  const createEmbeddingMutation = useCreateEmbeddingMutation({ setText });
 
   const handleSubmit = () => {
     if (text.trim()) {
